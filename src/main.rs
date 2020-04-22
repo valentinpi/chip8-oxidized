@@ -1,4 +1,10 @@
 use std::{env, fs, io};
+use sdl2::{
+    audio,
+    event,
+    render,
+    video
+};
 
 struct Chip8 {
     ram: [u8; 0x1000],
@@ -29,41 +35,41 @@ impl Chip8 {
             match instruction {
                 [0x0, 0x0, 0xE, 0x0] => {}
                 [0x0, 0x0, 0xE, 0xE] => {}
-                [0x0, A, B, C] => {}
-                [0x1, A, B, C] => {}
-                [0x2, A, B, C] => {}
-                [0x3, A, B, C] => {}
-                [0x4, A, B, C] => {}
-                [0x5, A, B, C] => {}
-                [0x6, A, B, C] => {
-                    self.v[A as usize] = ((C << 4) | B) as u16;
+                [0x0, a, b, c] => {}
+                [0x1, a, b, c] => {}
+                [0x2, a, b, c] => {}
+                [0x3, a, b, c] => {}
+                [0x4, a, b, c] => {}
+                [0x5, a, b, c] => {}
+                [0x6, a, b, c] => {
+                    self.v[a as usize] = ((c << 4) | b) as u16;
                 }
-                [0x7, A, B, C] => {}
-                [0x8, X, Y, 0x0] => {}
-                [0x8, x, Y, 0x1] => {}
-                [0x8, x, Y, 0x2] => {}
-                [0x8, x, Y, 0x3] => {}
-                [0x8, x, Y, 0x4] => {}
-                [0x8, x, Y, 0x5] => {}
-                [0x8, x, Y, 0x6] => {}
-                [0x8, x, Y, 0x7] => {}
-                [0x8, x, Y, 0xE] => {}
-                [0x9, x, Y, 0x0] => {}
-                [0xA, A, B, C] => {}
-                [0xB, A, B, C] => {}
-                [0xC, X, B, C] => {}
-                [0xD, X, Y, C] => {}
-                [0xE, X, 0x9, 0xE] => {}
-                [0xE, X, 0xA, 0x1] => {}
-                [0xF, X, 0x0, 0x7] => {}
-                [0xF, X, 0x0, 0xA] => {}
-                [0xF, X, 0x1, 0x5] => {}
-                [0xF, X, 0x1, 0x8] => {}
-                [0xF, X, 0x1, 0xE] => {}
-                [0xF, X, 0x2, 0x9] => {}
-                [0xF, X, 0x3, 0x3] => {}
-                [0xF, X, 0x5, 0x5] => {}
-                [0xF, X, 0x6, 0x5] => {}
+                [0x7, a, b, c] => {}
+                [0x8, x, y, 0x0] => {}
+                [0x8, x, y, 0x1] => {}
+                [0x8, x, y, 0x2] => {}
+                [0x8, x, y, 0x3] => {}
+                [0x8, x, y, 0x4] => {}
+                [0x8, x, y, 0x5] => {}
+                [0x8, x, y, 0x6] => {}
+                [0x8, x, y, 0x7] => {}
+                [0x8, x, y, 0xE] => {}
+                [0x9, x, y, 0x0] => {}
+                [0xA, a, b, c] => {}
+                [0xB, a, b, c] => {}
+                [0xC, x, b, c] => {}
+                [0xD, x, y, c] => {}
+                [0xE, x, 0x9, 0xE] => {}
+                [0xE, x, 0xA, 0x1] => {}
+                [0xF, x, 0x0, 0x7] => {}
+                [0xF, x, 0x0, 0xA] => {}
+                [0xF, x, 0x1, 0x5] => {}
+                [0xF, x, 0x1, 0x8] => {}
+                [0xF, x, 0x1, 0xE] => {}
+                [0xF, x, 0x2, 0x9] => {}
+                [0xF, x, 0x3, 0x3] => {}
+                [0xF, x, 0x5, 0x5] => {}
+                [0xF, x, 0x6, 0x5] => {}
                 [_, _, _, _] => {
                     panic!("Unknown instruction!");
                 }
