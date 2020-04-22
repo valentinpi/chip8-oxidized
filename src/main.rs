@@ -1,10 +1,10 @@
+use sdl2::{audio, event, render, video};
 use std::{env, fs, io};
-use sdl2::{
-    audio,
-    event,
-    render,
-    video
-};
+
+const CHIP8_SCREEN_WIDTH: usize = 64;
+const CHIP8_SCREEN_HEIGHT: usize = 32;
+const NUM_PIXELS: usize = CHIP8_SCREEN_WIDTH * CHIP8_SCREEN_HEIGHT;
+const NUM_PIXELS_BYTE: usize = CHIP8_SCREEN_WIDTH * CHIP8_SCREEN_HEIGHT * 4;
 
 struct Chip8 {
     ram: [u8; 0x1000],
@@ -17,8 +17,65 @@ struct Chip8 {
 }
 
 impl Chip8 {
+    pub fn new(program: Vec<u8>) -> Chip8 {
+        let chip8 = Chip8 {
+            ram: [0; 0x1000],
+            pc: 0,
+            ar: 0,
+            v: [0; 16],
+            dt: 0,
+            st: 0,
+            program,
+        };
+
+        return chip8;
+    }
+
     pub fn run(&mut self) {
-        loop {
+        let window_width: u32 = 1280;
+        let window_height: u32 = 640;
+
+        let sdl2_context = sdl2::init().expect("Failed to initialize SDL");
+        let sdl2_videosystem = sdl2_context.video().unwrap();
+        // TODO: Perform scaling of 64x32 CHIP-8 Screen
+        let window = sdl2_videosystem
+            .window("Chip8", window_width, window_height)
+            .build()
+            .unwrap();
+        let mut canvas = window
+            .into_canvas()
+            .accelerated()
+            .present_vsync()
+            .build()
+            .unwrap();
+
+        // Create texture and corresponding pixel array
+        let mut pixels: [u8; NUM_PIXELS] = [0; NUM_PIXELS];
+        let texture_creator = canvas.texture_creator();
+        let mut texture = texture_creator
+            .create_texture_streaming(
+                sdl2::pixels::PixelFormatEnum::RGBA32,
+                window_width,
+                window_height,
+            )
+            .unwrap();
+
+        let mut event_pump = sdl2_context.event_pump().unwrap();
+        // TODO: Implement need to redraw (look at the Disp instructions)
+        let mut redraw = false;
+        'running: loop {
+            for event in event_pump.poll_iter() {
+                use event::Event::*;
+                match event {
+                    Quit { .. } => {
+                        break 'running;
+                    }
+                    _ => {
+                        println!("EVENT");
+                    }
+                }
+            }
+
             let first_half = self.program[self.pc] as u8;
             let second_half = self.program[self.pc + 1] as u8;
             let instruction: [u8; 4] = [
@@ -33,7 +90,14 @@ impl Chip8 {
             );
 
             match instruction {
-                [0x0, 0x0, 0xE, 0x0] => {}
+                [0x0, 0x0, 0xE, 0x0] => {
+                    let mut i = 0;
+                    while i < NUM_PIXELS_BYTE {
+                        pixels[i] = 0x00;
+                        i += 1;
+                    }
+                    redraw = true;
+                }
                 [0x0, 0x0, 0xE, 0xE] => {}
                 [0x0, a, b, c] => {}
                 [0x1, a, b, c] => {}
@@ -58,7 +122,16 @@ impl Chip8 {
                 [0xA, a, b, c] => {}
                 [0xB, a, b, c] => {}
                 [0xC, x, b, c] => {}
-                [0xD, x, y, c] => {}
+                [0xD, x, y, c] => {
+                    // TODO: Implement this efficiently
+                    // Watched this naming convention in a tutorial once
+                    //let sprite_width = 8;
+                    //let mut yy = y;
+                    //while yy < (y + c) {
+                    //    pixels[(yy * sprite_width) as usize] = self.ram[self.ar as usize..(self.ar + 8) as usize];
+                    //    yy += 1;
+                    //}
+                }
                 [0xE, x, 0x9, 0xE] => {}
                 [0xE, x, 0xA, 0x1] => {}
                 [0xF, x, 0x0, 0x7] => {}
@@ -79,6 +152,14 @@ impl Chip8 {
             if self.pc >= self.program.len() {
                 break;
             }
+
+            if redraw {
+                texture
+                    .update(None, pixels.as_ref(), (64 * 4) as usize)
+                    .unwrap();
+                canvas.copy(&texture, None, None).unwrap();
+                canvas.present();
+            }
         }
     }
 }
@@ -95,15 +176,7 @@ fn main() -> Result<(), io::Error> {
     let file: Vec<u8> = fs::read(&args[1]).expect(error_message.as_str());
     println!("{} is {} byte long", &args[1], file.len());
 
-    let mut chip8 = Chip8 {
-        ram: [0; 0x1000],
-        pc: 0,
-        ar: 0,
-        v: [0; 16],
-        dt: 0,
-        st: 0,
-        program: file.clone(),
-    };
+    let mut chip8 = Chip8::new(file.clone());
     chip8.run();
 
     for reg in chip8.v.iter() {
