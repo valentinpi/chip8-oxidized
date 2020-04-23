@@ -109,12 +109,38 @@ impl Chip8 {
                     self.v[a as usize] = ((c << 4) | b) as u16;
                 }
                 [0x7, a, b, c] => {}
-                [0x8, x, y, 0x0] => {}
-                [0x8, x, y, 0x1] => {}
-                [0x8, x, y, 0x2] => {}
-                [0x8, x, y, 0x3] => {}
-                [0x8, x, y, 0x4] => {}
-                [0x8, x, y, 0x5] => {}
+                [0x8, x, y, 0x0] => {
+                    self.v[x as usize] = self.v[y as usize];
+                }
+                [0x8, x, y, 0x1] => {
+                    self.v[x as usize] = self.v[x as usize] | self.v[y as usize];
+                }
+                [0x8, x, y, 0x2] => {
+                    self.v[x as usize] = self.v[x as usize] & self.v[y as usize];
+                }
+                [0x8, x, y, 0x3] => {
+                    self.v[x as usize] = self.v[x as usize] ^ self.v[y as usize];
+                }
+                [0x8, x, y, 0x4] => {
+                    let s = self.v[x as usize] as u32 + self.v[y as usize] as u32;
+                    if s < std::u16::MAX {
+                        self.v[0xF] = 0;
+                        self.v[x as usize] = s as u16;
+                    } else {
+                        self.v[0xF] = 1;
+                        self.v[x as usize] = (s & 0xFFFF) as u16;
+                    }
+                }
+                [0x8, x, y, 0x5] => {
+                    let s: i32 = self.v[x as usize] as i32 - self.v[y as usize] as i32;
+                    if s > 0 {
+                        self.v[0xF] = 1;
+                        self.v[x as usize] = s as u16;
+                    } else {
+                        self.v[0xF] = 0;
+                        self.v[x as usize] = -s as u16;
+                    }
+                }
                 [0x8, x, y, 0x6] => {}
                 [0x8, x, y, 0x7] => {}
                 [0x8, x, y, 0xE] => {}
