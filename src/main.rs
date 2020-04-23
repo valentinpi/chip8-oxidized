@@ -123,7 +123,7 @@ impl Chip8 {
                 }
                 [0x8, x, y, 0x4] => {
                     let s = self.v[x as usize] as u32 + self.v[y as usize] as u32;
-                    if s < std::u16::MAX {
+                    if s < std::u16::MAX as u32 {
                         self.v[0xF] = 0;
                         self.v[x as usize] = s as u16;
                     } else {
