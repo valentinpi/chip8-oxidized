@@ -1,3 +1,4 @@
+use rand::prelude::*;
 use sdl2::{audio, event, render, video};
 use std::{env, fs, io};
 
@@ -159,10 +160,34 @@ impl Chip8 {
                     self.v[0xF] = self.v[x as usize] & 0x8000;
                     self.v[x as usize] <<= 1;
                 }
-                [0x9, x, y, 0x0] => {}
-                [0xA, a, b, c] => {}
-                [0xB, a, b, c] => {}
-                [0xC, x, b, c] => {}
+                [0x9, x, y, 0x0] => {
+                    // Skips the next instruction if VX doesn't equal VY.
+                    if self.v[x as usize] != self.v[y as usize] {
+                        self.pc += 2;
+                    }
+                }
+                [0xA, a, b, c] => {
+                    let mut result: u16 = 0;
+                    result |= (a as u16) << 8;
+                    result |= (b as u16) << 4;
+                    result |= c as u16;
+                    self.ar = result;
+                }
+                [0xB, a, b, c] => {
+                    let mut result: usize = 0;
+                    result |= (a as usize) << 8;
+                    result |= (b as usize) << 4;
+                    result |= c as usize;
+                    result += self.v[0] as usize;
+                    self.pc = result;
+                }
+                [0xC, x, b, c] => {
+                    let mut result: u16 = 0;
+                    result |= (b as u16) << 4;
+                    result |= c as u16;
+                    result &= rand::random::<u16>();
+                    self.v[x as usize] = result;
+                }
                 [0xD, x, y, c] => {
                     // TODO: Implement this efficiently
                     // Watched this naming convention in a tutorial once
