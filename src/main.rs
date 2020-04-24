@@ -141,9 +141,24 @@ impl Chip8 {
                         self.v[x as usize] = -s as u16;
                     }
                 }
-                [0x8, x, y, 0x6] => {}
-                [0x8, x, y, 0x7] => {}
-                [0x8, x, y, 0xE] => {}
+                [0x8, x, y, 0x6] => {
+                    self.v[0xF] = self.v[x as usize] & 0x1;
+                    self.v[x as usize] >>= 1;
+                }
+                [0x8, x, y, 0x7] => {
+                    let s: i32 = self.v[y as usize] as i32 - self.v[x as usize] as i32;
+                    if s > 0 {
+                        self.v[0xF] = 1;
+                        self.v[x as usize] = s as u16;
+                    } else {
+                        self.v[0xF] = 0;
+                        self.v[x as usize] = -s as u16;
+                    }
+                }
+                [0x8, x, y, 0xE] => {
+                    self.v[0xF] = self.v[x as usize] & 0x8000;
+                    self.v[x as usize] <<= 1;
+                }
                 [0x9, x, y, 0x0] => {}
                 [0xA, a, b, c] => {}
                 [0xB, a, b, c] => {}
