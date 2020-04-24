@@ -1,4 +1,5 @@
 use rand::prelude::*;
+use sdl2::keyboard::Keycode;
 use sdl2::{audio, event, render, video};
 use std::{env, fs, io};
 
@@ -15,6 +16,7 @@ struct Chip8 {
     dt: u8, // Delay timer
     st: u8, // Sound timer
     program: Vec<u8>,
+    key_pad: [bool; 16],
 }
 
 impl Chip8 {
@@ -27,6 +29,7 @@ impl Chip8 {
             dt: 0,
             st: 0,
             program,
+            key_pad: [false; 16],
         };
 
         return chip8;
@@ -69,6 +72,115 @@ impl Chip8 {
                 use event::Event::*;
                 match event {
                     Quit { .. } => {
+                        break 'running;
+                    }
+                    KeyDown { keycode, .. } => {
+                        match keycode.unwrap() {
+                            Keycode::Num0 => {
+                                self.key_pad[0] = true;
+                            }
+                            Keycode::Num1 => {
+                                self.key_pad[1] = true;
+                            }
+                            Keycode::Num2 => {
+                                self.key_pad[2] = true;
+                            }
+                            Keycode::Num3 => {
+                                self.key_pad[3] = true;
+                            }
+                            Keycode::Num4 => {
+                                self.key_pad[4] = true;
+                            }
+                            Keycode::Num5 => {
+                                self.key_pad[5] = true;
+                            }
+                            Keycode::Num6 => {
+                                self.key_pad[6] = true;
+                            }
+                            Keycode::Num7 => {
+                                self.key_pad[7] = true;
+                            }
+                            Keycode::Num8 => {
+                                self.key_pad[8] = true;
+                            }
+                            Keycode::Num9 => {
+                                self.key_pad[9] = true;
+                            }
+                            Keycode::A => {
+                                self.key_pad[10] = true;
+                            }
+                            Keycode::B => {
+                                self.key_pad[11] = true;
+                            }
+                            Keycode::C => {
+                                self.key_pad[12] = true;
+                            }
+                            Keycode::D => {
+                                self.key_pad[13] = true;
+                            }
+                            Keycode::E => {
+                                self.key_pad[14] = true;
+                            }
+                            Keycode::F => {
+                                self.key_pad[15] = true;
+                            }
+                            _ => {}
+                        }
+                        break 'running;
+                    }
+
+                    KeyUp { keycode, .. } => {
+                        match keycode.unwrap() {
+                            Keycode::Num0 => {
+                                self.key_pad[0] = false;
+                            }
+                            Keycode::Num1 => {
+                                self.key_pad[1] = false;
+                            }
+                            Keycode::Num2 => {
+                                self.key_pad[2] = false;
+                            }
+                            Keycode::Num3 => {
+                                self.key_pad[3] = false;
+                            }
+                            Keycode::Num4 => {
+                                self.key_pad[4] = false;
+                            }
+                            Keycode::Num5 => {
+                                self.key_pad[5] = false;
+                            }
+                            Keycode::Num6 => {
+                                self.key_pad[6] = false;
+                            }
+                            Keycode::Num7 => {
+                                self.key_pad[7] = false;
+                            }
+                            Keycode::Num8 => {
+                                self.key_pad[8] = false;
+                            }
+                            Keycode::Num9 => {
+                                self.key_pad[9] = false;
+                            }
+                            Keycode::A => {
+                                self.key_pad[10] = false;
+                            }
+                            Keycode::B => {
+                                self.key_pad[11] = false;
+                            }
+                            Keycode::C => {
+                                self.key_pad[12] = false;
+                            }
+                            Keycode::D => {
+                                self.key_pad[13] = false;
+                            }
+                            Keycode::E => {
+                                self.key_pad[14] = false;
+                            }
+                            Keycode::F => {
+                                self.key_pad[15] = false;
+                            }
+                            _ => {}
+                        }
                         break 'running;
                     }
                     _ => {
