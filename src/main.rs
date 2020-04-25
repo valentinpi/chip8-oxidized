@@ -113,8 +113,8 @@ impl Chip8 {
                 }
             }
 
-            let first_half = self.program[self.pc] as u8;
-            let second_half = self.program[self.pc + 1] as u8;
+            let first_half: u8 = self.program[self.pc];
+            let second_half: u8 = self.program[self.pc + 1];
             let instruction: [u8; 4] = [
                 (first_half & 0xF0) >> 4,
                 first_half & 0xF,
@@ -273,14 +273,23 @@ impl Chip8 {
                 [0xE, x, 0x9, 0xE] => {}
                 // EXA1 - Skips the next instruction if the key stored in VX isn't pressed. (Usually the next instruction is a jump to skip a code block)
                 [0xE, x, 0xA, 0x1] => {}
+                // FX07 - Sets VX to the value of the delay timer.
                 [0xF, x, 0x0, 0x7] => {}
+                // FX0A - A key press is awaited, and then stored in VX. (Blocking Operation. All instruction halted until next key event)
                 [0xF, x, 0x0, 0xA] => {}
+                // FX15 - Sets the delay timer to VX.
                 [0xF, x, 0x1, 0x5] => {}
+                // FX18 - Sets the sound timer to VX.
                 [0xF, x, 0x1, 0x8] => {}
+                // FX1E - Adds VX to I. VF is set to 1 when there is a range overflow (I+VX>0xFFF), and to 0 when there isn't.
                 [0xF, x, 0x1, 0xE] => {}
+                // FX29 - Sets I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 4x5 font.
                 [0xF, x, 0x2, 0x9] => {}
+                // FX33 - Stores the binary-coded decimal representation of VX, with the most significant of three digits at the address in I, the middle digit at I plus 1, and the least significant digit at I plus 2. (In other words, take the decimal representation of VX, place the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.)
                 [0xF, x, 0x3, 0x3] => {}
+                // FX55 - Stores V0 to VX (including VX) in memory starting at address I. The offset from I is increased by 1 for each value written, but I itself is left unmodified.
                 [0xF, x, 0x5, 0x5] => {}
+                // FX65 - Fills V0 to VX (including VX) with values from memory starting at address I. The offset from I is increased by 1 for each value written, but I itself is left unmodified.
                 [0xF, x, 0x6, 0x5] => {}
                 [_, _, _, _] => {
                     panic!("Unknown instruction!");
