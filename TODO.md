@@ -7,7 +7,8 @@
 - ## SDL frontend
     - Handle time
     - Implement efficient drawing
-    - Implement different keybindings for non-numpad users
+    - Implement audio
+    - Perhaps implement different keybindings for non-numpad users
 - ## Portability
     - Separate emulator and rendering components
     - Implement Web Version, see Web Assembly
