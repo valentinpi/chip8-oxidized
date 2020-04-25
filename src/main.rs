@@ -142,19 +142,14 @@ impl Chip8 {
                 [0x0, a, b, c] => {}
                 // 1NNN - Jumps to address NNN.
                 [0x1, a, b, c] => {
-                    let mut addr: usize = 0;
-                    addr |= (a as usize) << 8;
-                    addr |= (b as usize) << 4;
-                    addr |= c as usize;
+                    let addr: usize = ((a as usize) << 8) | ((b as usize) << 4) | (c as usize);
                     self.pc = addr - 2;
                 }
                 // 2NNN - Calls subroutine at NNN.
                 [0x2, a, b, c] => {}
                 // 3XNN - Skips the next instruction if VX equals NN. (Usually the next instruction is a jump to skip a code block)
                 [0x3, x, b, c] => {
-                    let mut val: u16 = 0;
-                    val |= (b as u16) << 4;
-                    val |= c as u16;
+                    let val: u16 = ((b << 4) | c) as u16;
                     if self.v[x as usize] == val {
                         self.pc += 2;
                     }
@@ -248,26 +243,18 @@ impl Chip8 {
                 }
                 // ANNN - Sets I to the address NNN.
                 [0xA, a, b, c] => {
-                    let mut addr: u16 = 0;
-                    addr |= (a as u16) << 8;
-                    addr |= (b as u16) << 4;
-                    addr |= c as u16;
+                    let addr: u16 = ((a as u16) << 8) | ((b as u16) << 4) | (c as u16);
                     self.ar = addr;
                 }
                 // BNNN - Jumps to the address NNN plus V0.
                 [0xB, a, b, c] => {
-                    let mut addr: usize = 0;
-                    addr |= (a as usize) << 8;
-                    addr |= (b as usize) << 4;
-                    addr |= c as usize;
+                    let mut addr: usize = ((a as usize) << 8) | ((b as usize) << 4) | (c as usize);
                     addr += self.v[0] as usize;
                     self.pc = addr;
                 }
                 // CXNN - Sets VX to the result of a bitwise and operation on a random number (Typically: 0 to 255) and NN.
                 [0xC, x, b, c] => {
-                    let mut addr: u16 = 0;
-                    addr |= (b as u16) << 4;
-                    addr |= c as u16;
+                    let mut addr: u16 = ((b << 4) | c) as u16;
                     addr &= rand::random::<u16>();
                     self.v[x as usize] = addr;
                 }
