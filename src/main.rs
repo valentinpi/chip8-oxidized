@@ -1,4 +1,4 @@
-use sdl2::{audio, event, keyboard::Keycode, render, timer, video};
+use sdl2::{audio, event, keyboard::Keycode, render, surface, timer, video};
 use std::{collections, env, fs, io};
 
 const CHIP8_SCREEN_WIDTH: usize = 64;
@@ -78,16 +78,8 @@ impl Chip8 {
             .build()
             .unwrap();
 
-        // Create texture and corresponding pixel array
         let mut pixels: [u8; NUM_PIXELS_BYTES] = [0; NUM_PIXELS_BYTES];
         let texture_creator = canvas.texture_creator();
-        let mut texture = texture_creator
-            .create_texture_streaming(
-                sdl2::pixels::PixelFormatEnum::RGB24,
-                window_width,
-                window_height,
-            )
-            .unwrap();
 
         let mut event_pump = sdl2_context.event_pump().unwrap();
         // TODO: Implement need to redraw (look at the Disp instructions)
@@ -415,10 +407,18 @@ impl Chip8 {
             }
 
             if redraw {
-                texture
-                    .update(None, &pixels, CHIP8_SCREEN_WIDTH * 3 as usize)
+                // texture.update seems to have problems with the ABI, so try to avoid calling it until that's fixed
+                let surface = surface::Surface::from_data(
+                    &mut pixels,
+                    window_width,
+                    window_height,
+                    (CHIP8_SCREEN_WIDTH * 3) as u32,
+                    sdl2::pixels::PixelFormatEnum::RGB24,
+                )
+                .unwrap();
+                let texture = texture_creator
+                    .create_texture_from_surface(surface)
                     .unwrap();
-                println!("REDRAW!");
                 canvas.copy(&texture, None, None).unwrap();
                 canvas.present();
                 redraw = false;
