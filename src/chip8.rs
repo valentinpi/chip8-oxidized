@@ -78,7 +78,12 @@ impl Chip8 {
             .build()
             .unwrap();
 
-        println!("{}.{}.{}", sdl2::version::version(), sdl2::version::revision(), sdl2::version::revision_number());
+        println!(
+            "{}.{}.{}",
+            sdl2::version::version(),
+            sdl2::version::revision(),
+            sdl2::version::revision_number()
+        );
 
         let mut pixels: [u8; NUM_PIXELS_BYTES] = [0; NUM_PIXELS_BYTES];
         let texture_creator = canvas.texture_creator();
@@ -304,27 +309,29 @@ impl Chip8 {
                         ];
                         // Get the current row in the screen buffer
                         let pixel_row_coord = yi as usize * CHIP8_SCREEN_WIDTH * 3;
-                        let pixel_row = &mut pixels[pixel_row_coord..(pixel_row_coord + 24) + (x as usize) * 3];
+                        let pixel_row =
+                            &mut pixels[pixel_row_coord..(pixel_row_coord + 24) + (x as usize) * 3];
                         // Iterate over sprite pixels
                         let mut xi = 0;
                         for sprite_pixel in sprite_row.iter() {
                             let mut pixel = pixel_row[xi];
                             // Collision detection
                             if pixel == 0xFF {
-                                pixel = 0x01;
+                                pixel = 1;
                             }
-                            if *sprite_pixel == 1 && pixel != *sprite_pixel {
+                            if pixel == 1 && *sprite_pixel == 1 {
                                 self.v[0xF] = 1;
                             }
                             // XOR the pixels from the screen buffer and the sprite
-                            if *sprite_pixel == 0 {
-                                pixel_row[xi] = 0xFF;
-                                pixel_row[xi + 1] = 0xFF;
-                                pixel_row[xi + 2] = 0xFF;
-                            } else {
+                            let result = pixel ^ *sprite_pixel;
+                            if result == 0 {
                                 pixel_row[xi] = 0x00;
                                 pixel_row[xi + 1] = 0x00;
                                 pixel_row[xi + 2] = 0x00;
+                            } else {
+                                pixel_row[xi] = 0xFF;
+                                pixel_row[xi + 1] = 0xFF;
+                                pixel_row[xi + 2] = 0xFF;
                             }
                             xi += 3;
                         }
@@ -386,27 +393,35 @@ impl Chip8 {
                     }
                 }
                 // FX29 - Sets I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 4x5 font.
-                [0xF, x, 0x2, 0x9] => {}
+                [0xF, x, 0x2, 0x9] => {
+                    unimplemented!();
+                }
                 // FX33 - Stores the binary-coded decimal representation of VX, with the most significant of three digits at the address in I, the middle digit at I plus 1, and the least significant digit at I plus 2. (In other words, take the decimal representation of VX, place the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.)
-                [0xF, x, 0x3, 0x3] => {}
+                [0xF, x, 0x3, 0x3] => {
+                    unimplemented!();
+                }
                 // FX55 - Stores V0 to VX (including VX) in memory starting at address I. The offset from I is increased by 1 for each value written, but I itself is left unmodified.
                 [0xF, x, 0x5, 0x5] => {
                     let mut ar = self.ar as usize;
-                    let regs = &self.v[0..=x as usize];
-                    for reg in regs.into_iter() {
+                    let mut xi = 0;
+                    while xi < (x + 1) {
+                        let reg = self.v[xi as usize];
                         let bytes = reg.to_be_bytes();
-                        self.ram[ar] = bytes[0];
-                        self.ram[ar + 1] = bytes[1];
+                        self.ram[ar] = bytes[1];
+                        self.ram[ar + 1] = bytes[0];
                         ar += 2;
+                        xi += 1;
                     }
                 }
                 // FX65 - Fills V0 to VX (including VX) with values from memory starting at address I. The offset from I is increased by 1 for each value written, but I itself is left unmodified.
                 [0xF, x, 0x6, 0x5] => {
                     let mut ar = self.ar as usize;
-                    let regs = &mut self.v[0..=x as usize];
-                    for reg in regs.iter_mut() {
-                        *reg = u16::from_be_bytes([self.ram[ar + 1], self.ram[ar]]);
+                    let mut xi = 0;
+                    while xi < (x + 1) {
+                        let reg = &mut self.v[xi as usize];
+                        *reg = u16::from_be_bytes([self.ram[ar], self.ram[ar + 1]]);
                         ar += 2;
+                        xi += 1;
                     }
                 }
                 [_, _, _, _] => {
