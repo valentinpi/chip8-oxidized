@@ -5,7 +5,6 @@ use std::convert::TryInto;
 const CHIP8_SCREEN_WIDTH: usize = 64;
 const CHIP8_SCREEN_HEIGHT: usize = 32;
 const NUM_PIXELS: usize = CHIP8_SCREEN_WIDTH * CHIP8_SCREEN_HEIGHT;
-const NUM_PIXELS_BYTES: usize = NUM_PIXELS * 3;
 
 const FONT: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, 0x20, 0x60, 0x20, 0x20, 0x70, 0xF0, 0x10, 0xF0, 0x80, 0xF0, 0xF0,
@@ -66,7 +65,7 @@ impl Chip8 {
         chip8.key_bindings.insert(Keycode::F, 0xF);
 
         // Insert font data
-        let (font_area, ram) = chip8.ram.split_at_mut(80);
+        let (font_area, _ram) = chip8.ram.split_at_mut(80);
         assert!(font_area.len() == 80);
         font_area.copy_from_slice(&FONT);
 
@@ -78,8 +77,9 @@ impl Chip8 {
         let window_height: u32 = 640;
 
         let sdl2_context = sdl2::init().expect("Failed to initialize SDL");
-        let sdl2_video_system = sdl2_context.video().unwrap();
+        let sdl2_audio_system = sdl2_context.audio().unwrap();
         let mut sdl2_timer_system = sdl2_context.timer().unwrap();
+        let sdl2_video_system = sdl2_context.video().unwrap();
         // TODO: Perform scaling of 64x32 CHIP-8 Screen
         let window = sdl2_video_system
             .window("Chip8", window_width, window_height)
@@ -92,6 +92,12 @@ impl Chip8 {
             .build()
             .unwrap();
 
+        let audio_spec = audio::AudioSpecDesired {
+            freq: Some(48000),
+            channels: Some(2),  // mono
+            samples: None       // default sample size
+        };
+        
         println!(
             "{}.{}.{}",
             sdl2::version::version(),
@@ -99,7 +105,7 @@ impl Chip8 {
             sdl2::version::revision_number()
         );
 
-        let mut pixels: [u8; NUM_PIXELS_BYTES] = [0; NUM_PIXELS_BYTES];
+        let mut pixels: [u8; NUM_PIXELS] = [0; NUM_PIXELS];
         let texture_creator = canvas.texture_creator();
         let mut texture = texture_creator
             .create_texture_streaming(
@@ -166,7 +172,7 @@ impl Chip8 {
             match instruction {
                 // 00E0 - Clears the screen.
                 [0x0, 0x0, 0xE, 0x0] => {
-                    pixels = [0; NUM_PIXELS_BYTES];
+                    pixels = [0; NUM_PIXELS];
                     redraw = true;
                 }
                 // 00EE - Returns from a subroutine.
@@ -303,12 +309,22 @@ impl Chip8 {
                     self.v[x as usize] = addr;
                 }
                 // DXYN - Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels. Each row of 8 pixels is read as bit-coded starting from memory location I; I value doesn’t change after the execution of this instruction. As described above, VF is set to 1 if any screen pixels are flipped from set to unset when the sprite is drawn, and to 0 if that doesn’t happen
+                // - Coordinate (VX, VY)                            - Check
+                // - 8x{1-F} sprite, starts at I                    - Check
+                // - Each row bit coded                             - Check
+                // - I does not change                              - Check
+                // - Flip from set to unset => VF=1, otherwise VF=0 - Check
                 [0xD, x, y, c] => {
                     self.v[0xF] = 0;
                     let mut ar = self.ar as usize;
-                    let mut yi = y;
+                    let vx: u16 = self.v[x as usize];
+                    let vy: u16 = self.v[y as usize];
+                    let mut yi = vy;
                     // Iterate over the rows
-                    while yi < (y + c) {
+                    while yi < (vy + (c as u16)) {
+                        if yi >= CHIP8_SCREEN_HEIGHT as u16 {
+                            break;
+                        }
                         // Extract each bit from sprite
                         let sprite_data: u8 = self.ram[ar];
                         let sprite_row = [
@@ -321,33 +337,32 @@ impl Chip8 {
                             (sprite_data & 0x02) >> 1,
                             sprite_data & 0x01,
                         ];
+
                         // Get the current row in the screen buffer
-                        let pixel_row_coord = yi as usize * CHIP8_SCREEN_WIDTH * 3;
-                        let pixel_row =
-                            &mut pixels[pixel_row_coord..(pixel_row_coord + 24) + (x as usize) * 3];
+                        let pixel_row_coord = (yi as usize) * CHIP8_SCREEN_WIDTH + (vx as usize);
+                        // 24, because we read 8 pixels of 3 bytes each (RGB24)
+                        let (pixel_row_left, mut pixel_row_right) =
+                            (pixel_row_coord, pixel_row_coord + 8);
+                        if pixel_row_right > NUM_PIXELS {
+                            pixel_row_right = NUM_PIXELS;
+                        }
+                        let pixel_row = &mut pixels[pixel_row_left..pixel_row_right];
+
                         // Iterate over sprite pixels
-                        let mut xi = 0;
+                        let mut xi: u16 = 0;
                         for sprite_pixel in sprite_row.iter() {
-                            let mut pixel = pixel_row[xi];
+                            let pixel: u8 = pixel_row[xi as usize];
                             // Collision detection
-                            if pixel == 0xFF {
-                                pixel = 1;
-                            }
                             if pixel == 1 && *sprite_pixel == 1 {
                                 self.v[0xF] = 1;
                             }
                             // XOR the pixels from the screen buffer and the sprite
                             let result = pixel ^ *sprite_pixel;
-                            if result == 0 {
-                                pixel_row[xi] = 0x00;
-                                pixel_row[xi + 1] = 0x00;
-                                pixel_row[xi + 2] = 0x00;
-                            } else {
-                                pixel_row[xi] = 0xFF;
-                                pixel_row[xi + 1] = 0xFF;
-                                pixel_row[xi + 2] = 0xFF;
+                            pixel_row[xi as usize] = result;
+                            xi += 1;
+                            if xi >= 8 as u16 {
+                                break;
                             }
-                            xi += 3;
                         }
                         ar += 1;
                         yi += 1;
@@ -402,13 +417,14 @@ impl Chip8 {
                     self.ar += self.v[x as usize];
                     if self.ar > 0xFFF {
                         self.v[0xF] = 1;
+                        self.ar %= 0x1000;
                     } else {
                         self.v[0xF] = 0;
                     }
                 }
                 // FX29 - Sets I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 4x5 font.
                 [0xF, x, 0x2, 0x9] => {
-                    self.ar = self.ram[(self.v[x as usize] * 5) as usize] as u16;
+                    self.ar = (self.v[x as usize] % 16) * 5;
                 }
                 // FX33 - Stores the binary-coded decimal representation of VX, with the most significant of three digits at the address in I, the middle digit at I plus 1, and the least significant digit at I plus 2. (In other words, take the decimal representation of VX, place the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.)
                 [0xF, x, 0x3, 0x3] => {
@@ -463,11 +479,24 @@ impl Chip8 {
             }
 
             if redraw {
+                canvas.clear();
+
+                let mut texture_data: [u8; NUM_PIXELS * 3] = [0; NUM_PIXELS * 3];
+                for (i, pixel) in pixels.iter().enumerate() {
+                    let mut color = 0x00;
+                    if *pixel == 1 {
+                        color = 0xFF;
+                    }
+                    texture_data[i * 3] = color;
+                    texture_data[i * 3 + 1] = color;
+                    texture_data[i * 3 + 2] = color;
+                }
                 texture
-                    .update(None, &pixels, (CHIP8_SCREEN_WIDTH * 3) as usize)
+                    .update(None, &texture_data, (CHIP8_SCREEN_WIDTH * 3) as usize)
                     .unwrap();
                 canvas.copy(&texture, None, None).unwrap();
                 canvas.present();
+
                 redraw = false;
             }
 
@@ -484,14 +513,19 @@ impl Chip8 {
 
             #[cfg(debug_assertions)]
             {
-                for (i, reg) in self.v.iter().enumerate() {
-                    println!("V{:X}: {}", i, reg);
+                if instruction[0] != 6 {
+                    for (i, reg) in self.v.iter().enumerate() {
+                        println!("V{:X}: {:X}", i, reg);
+                    }
+                    println!("ar: {:X}", self.ar);
+                    println!("pc: {:X}", self.pc);
+                    println!("sp: {:X}", self.sp);
+                    println!("dt: {:X}", self.dt);
+                    println!("st: {:X}", self.st);
+
+                    //let mut line = String::new();
+                    //std::io::stdin().read_line(&mut line).unwrap();
                 }
-                println!("ar: {:X}", self.ar);
-                println!("pc: {:X}", self.pc);
-                println!("sp: {:X}", self.sp);
-                println!("dt: {:X}", self.dt);
-                println!("st: {:X}", self.st);
             }
         }
     }
