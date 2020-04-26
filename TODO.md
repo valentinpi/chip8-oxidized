@@ -2,6 +2,7 @@
 
 - ## Emulator
     - Implement remaining instructions
+    - Implement font reading
     - Figure out what to do with the 0NNN instruction
     - Write test routines
 - ## SDL frontend
