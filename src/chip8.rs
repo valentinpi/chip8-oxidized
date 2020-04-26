@@ -78,6 +78,8 @@ impl Chip8 {
             .build()
             .unwrap();
 
+        println!("{}.{}.{}", sdl2::version::version(), sdl2::version::revision(), sdl2::version::revision_number());
+
         let mut pixels: [u8; NUM_PIXELS_BYTES] = [0; NUM_PIXELS_BYTES];
         let texture_creator = canvas.texture_creator();
         let mut texture = texture_creator
