@@ -6,6 +6,14 @@ const CHIP8_SCREEN_HEIGHT: usize = 32;
 const NUM_PIXELS: usize = CHIP8_SCREEN_WIDTH * CHIP8_SCREEN_HEIGHT;
 const NUM_PIXELS_BYTES: usize = NUM_PIXELS * 3;
 
+const FONT: [u8; 80] = [
+    0xF0, 0x90, 0x90, 0x90, 0xF0, 0x20, 0x60, 0x20, 0x20, 0x70, 0xF0, 0x10, 0xF0, 0x80, 0xF0, 0xF0,
+    0x10, 0xF0, 0x10, 0xF0, 0x90, 0x90, 0xF0, 0x10, 0x10, 0xF0, 0x80, 0xF0, 0x10, 0xF0, 0xF0, 0x80,
+    0xF0, 0x90, 0xF0, 0xF0, 0x10, 0x20, 0x40, 0x40, 0xF0, 0x90, 0xF0, 0x90, 0xF0, 0xF0, 0x90, 0xF0,
+    0x10, 0xF0, 0xF0, 0x90, 0xF0, 0x90, 0x90, 0xE0, 0x90, 0xE0, 0x90, 0xE0, 0xF0, 0x80, 0x80, 0x80,
+    0xF0, 0xE0, 0x90, 0x90, 0x90, 0xE0, 0xF0, 0x80, 0xF0, 0x80, 0xF0, 0xF0, 0x80, 0xF0, 0x80, 0x80,
+];
+
 pub struct Chip8 {
     ram: [u8; 0x1000],
     pc: usize,
@@ -55,6 +63,11 @@ impl Chip8 {
         chip8.key_bindings.insert(Keycode::D, 0xD);
         chip8.key_bindings.insert(Keycode::E, 0xE);
         chip8.key_bindings.insert(Keycode::F, 0xF);
+
+        // Insert font data
+        let (font_area, ram) = chip8.ram.split_at_mut(80);
+        assert!(font_area.len() == 80);
+        font_area.copy_from_slice(&FONT);
 
         return chip8;
     }
@@ -394,7 +407,7 @@ impl Chip8 {
                 }
                 // FX29 - Sets I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 4x5 font.
                 [0xF, x, 0x2, 0x9] => {
-                    unimplemented!();
+                    self.ar = self.ram[(self.v[x as usize] * 5) as usize];
                 }
                 // FX33 - Stores the binary-coded decimal representation of VX, with the most significant of three digits at the address in I, the middle digit at I plus 1, and the least significant digit at I plus 2. (In other words, take the decimal representation of VX, place the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.)
                 [0xF, x, 0x3, 0x3] => {
