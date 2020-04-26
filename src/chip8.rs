@@ -1,5 +1,6 @@
 use sdl2::{audio, event, keyboard::Keycode, pixels};
 use std::collections;
+use std::convert::TryInto;
 
 const CHIP8_SCREEN_WIDTH: usize = 64;
 const CHIP8_SCREEN_HEIGHT: usize = 32;
@@ -407,11 +408,20 @@ impl Chip8 {
                 }
                 // FX29 - Sets I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 4x5 font.
                 [0xF, x, 0x2, 0x9] => {
-                    self.ar = self.ram[(self.v[x as usize] * 5) as usize];
+                    self.ar = self.ram[(self.v[x as usize] * 5) as usize] as u16;
                 }
                 // FX33 - Stores the binary-coded decimal representation of VX, with the most significant of three digits at the address in I, the middle digit at I plus 1, and the least significant digit at I plus 2. (In other words, take the decimal representation of VX, place the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.)
                 [0xF, x, 0x3, 0x3] => {
-                    unimplemented!();
+                    self.ram[self.ar as usize] = ((self.v[x as usize] - self.v[x as usize] % 100)
+                        / 100)
+                        .try_into()
+                        .unwrap();
+                    self.ram[(self.ar + 1) as usize] =
+                        ((self.v[x as usize] - self.v[x as usize] % 10) / 10)
+                            .try_into()
+                            .unwrap();
+                    self.ram[(self.ar + 2) as usize] =
+                        (self.v[x as usize] % 10).try_into().unwrap();
                 }
                 // FX55 - Stores V0 to VX (including VX) in memory starting at address I. The offset from I is increased by 1 for each value written, but I itself is left unmodified.
                 [0xF, x, 0x5, 0x5] => {
