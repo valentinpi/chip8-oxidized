@@ -81,7 +81,7 @@ impl Chip8 {
         let sdl2_video_system = sdl2_context.video().unwrap();
         // TODO: Perform scaling of 64x32 CHIP-8 Screen
         let window = sdl2_video_system
-            .window("Chip8", window_width, window_height)
+            .window("chip8-oxidized", window_width, window_height)
             .build()
             .unwrap();
         let mut canvas = window
@@ -180,27 +180,27 @@ impl Chip8 {
                 }
                 // 1NNN - Jumps to address NNN.
                 [0x1, a, b, c] => {
-                    let addr: usize = ((a as usize) << 8) | ((b as usize) << 4) | (c as usize);
+                    let addr = (((a as u16) << 8) | ((b as u16) << 4) | (c as u16)) as usize;
                     self.pc = addr - 2;
                 }
                 // 2NNN - Calls subroutine at NNN.
                 [0x2, a, b, c] => {
-                    let addr: usize = (((a as u16) << 8) | ((b as u16) << 4) | (c as u16)) as usize;
-                    self.stack[self.sp] = self.pc + 2;
+                    let addr = (((a as u16) << 8) | ((b as u16) << 4) | (c as u16)) as usize;
+                    self.stack[self.sp] = self.pc;
                     self.sp += 1;
                     self.pc = addr - 2;
                 }
                 // 3XNN - Skips the next instruction if VX equals NN. (Usually the next instruction is a jump to skip a code block)
                 [0x3, x, b, c] => {
-                    let val: u16 = ((b << 4) | c) as u16;
-                    if self.v[x as usize] == val {
+                    let nn = ((b << 4) | c) as u16;
+                    if self.v[x as usize] == nn {
                         self.pc += 2;
                     }
                 }
                 // 4XNN - Skips the next instruction if VX doesn't equal NN. (Usually the next instruction is a jump to skip a code block)
                 [0x4, x, b, c] => {
-                    let val = ((b << 4) | c) as u16;
-                    if self.v[x as usize] != val {
+                    let nn = ((b << 4) | c) as u16;
+                    if self.v[x as usize] != nn {
                         self.pc += 2;
                     }
                 }
@@ -212,13 +212,14 @@ impl Chip8 {
                 }
                 // 6XNN - Sets VX to NN.
                 [0x6, x, b, c] => {
-                    self.v[x as usize] = ((b << 4) | c) as u16;
+                    let nn = ((b << 4) | c) as u16;
+                    self.v[x as usize] = nn;
                 }
                 // 7XNN - Adds NN to VX. (Carry flag is not changed)
                 [0x7, x, b, c] => {
                     let nn = ((b << 4) | c) as u32;
-                    let s: u32 = (self.v[x as usize] as u32) + nn;
-                    self.v[x as usize] = (s % 0x10000) as u16;
+                    let sum = (self.v[x as usize] as u32) + nn;
+                    self.v[x as usize] = (sum % 0x10000) as u16;
                 }
                 // 8XY0 - Sets VX to the value of VY.
                 [0x8, x, y, 0x0] => {
@@ -238,41 +239,40 @@ impl Chip8 {
                 }
                 // 8XY4 - Adds VY to VX. VF is set to 1 when there's a carry, and to 0 when there isn't.
                 [0x8, x, y, 0x4] => {
-                    let s: u32 = (self.v[x as usize] as u32) + (self.v[y as usize] as u32);
-                    if s < 0x10000 {
+                    let sum = (self.v[x as usize] as u32) + (self.v[y as usize] as u32);
+                    if sum < 0x10000 {
                         self.v[0xF] = 0;
                     } else {
                         self.v[0xF] = 1;
                     }
-                    self.v[x as usize] = (s % 0x10000) as u16;
+                    self.v[x as usize] = (sum % 0x10000) as u16;
                 }
                 // 8XY5 - VY is subtracted from VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
                 [0x8, x, y, 0x5] => {
-                    let mut s: i32 = self.v[x as usize] as i32 - self.v[y as usize] as i32;
-                    if s > 0 {
+                    let mut diff = (self.v[x as usize] as i32) - (self.v[y as usize] as i32);
+                    if diff > 0 {
                         self.v[0xF] = 1;
-                        self.v[x as usize] = s as u16;
                     } else {
                         self.v[0xF] = 0;
-                        s = -s;
+                        diff = -diff;
                     }
-                    self.v[x as usize] = s as u16;
+                    self.v[x as usize] = diff as u16;
                 }
                 // 8XY6 - Stores the least significant bit of VX in VF and then shifts VX to the right by 1.
                 [0x8, x, _y, 0x6] => {
-                    self.v[0xF] = self.v[x as usize] % 0x1;
+                    self.v[0xF] = self.v[x as usize] & 0x1;
                     self.v[x as usize] >>= 1;
                 }
                 // 8XY7 - Sets VX to VY minus VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
                 [0x8, x, y, 0x7] => {
-                    let mut s: i32 = self.v[y as usize] as i32 - self.v[x as usize] as i32;
-                    if s > 0 {
+                    let mut diff = (self.v[y as usize] as i32) - (self.v[x as usize] as i32);
+                    if diff > 0 {
                         self.v[0xF] = 1;
                     } else {
                         self.v[0xF] = 0;
-                        s = -s;
+                        diff = -diff;
                     }
-                    self.v[x as usize] = s as u16;
+                    self.v[x as usize] = (diff % 0x10000) as u16;
                 }
                 // 8XYE - Stores the most significant bit of VX in VF and then shifts VX to the left by 1.
                 [0x8, x, _y, 0xE] => {
@@ -287,20 +287,20 @@ impl Chip8 {
                 }
                 // ANNN - Sets I to the address NNN.
                 [0xA, a, b, c] => {
-                    let addr: u16 = ((a as u16) << 8) | ((b as u16) << 4) | (c as u16);
+                    let addr = ((a as u16) << 8) | ((b as u16) << 4) | (c as u16);
                     self.ar = addr;
                 }
                 // BNNN - Jumps to the address NNN plus V0.
                 [0xB, a, b, c] => {
-                    let mut addr: usize = ((a as usize) << 8) | ((b as usize) << 4) | (c as usize);
+                    let mut addr = ((a as usize) << 8) | ((b as usize) << 4) | (c as usize);
                     addr += self.v[0] as usize;
-                    self.pc = addr - 2;
+                    self.pc = (addr % 0x1000) - 2;
                 }
                 // CXNN - Sets VX to the result of a bitwise and operation on a random number (Typically: 0 to 255) and NN.
                 [0xC, x, b, c] => {
-                    let mut val: u16 = ((b << 4) | c) as u16;
-                    val &= rand::random::<u8>() as u16;
-                    self.v[x as usize] = val;
+                    let nn = ((b << 4) | c) as u16;
+                    let rand = rand::random::<u8>() as u16;
+                    self.v[x as usize] = rand & nn;
                 }
                 // DXYN - Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels. Each row of 8 pixels is read as bit-coded starting from memory location I; I value doesn’t change after the execution of this instruction. As described above, VF is set to 1 if any screen pixels are flipped from set to unset when the sprite is drawn, and to 0 if that doesn’t happen
                 // - Coordinate (VX, VY)                            - Check
