@@ -185,10 +185,10 @@ impl Chip8 {
                 }
                 // 2NNN - Calls subroutine at NNN.
                 [0x2, a, b, c] => {
-                    let addr: u16 = ((a as u16) << 8) | ((b as u16) << 4) | (c as u16);
+                    let addr: usize = (((a as u16) << 8) | ((b as u16) << 4) | (c as u16)) as usize;
                     self.stack[self.sp] = self.pc + 2;
                     self.sp += 1;
-                    self.pc = (addr - 2) as usize;
+                    self.pc = addr - 2;
                 }
                 // 3XNN - Skips the next instruction if VX equals NN. (Usually the next instruction is a jump to skip a code block)
                 [0x3, x, b, c] => {
@@ -294,7 +294,7 @@ impl Chip8 {
                 [0xB, a, b, c] => {
                     let mut addr: usize = ((a as usize) << 8) | ((b as usize) << 4) | (c as usize);
                     addr += self.v[0] as usize;
-                    self.pc = addr;
+                    self.pc = addr - 2;
                 }
                 // CXNN - Sets VX to the result of a bitwise and operation on a random number (Typically: 0 to 255) and NN.
                 [0xC, x, b, c] => {
@@ -510,14 +510,14 @@ impl Chip8 {
             #[cfg(debug_assertions)]
             {
                 if instruction[0] != 6 {
-                    //for (i, reg) in self.v.iter().enumerate() {
-                    //    println!("V{:X}: {:X}", i, reg);
-                    //}
-                    //println!("ar: {:X}", self.ar);
-                    //println!("pc: {:X}", self.pc);
-                    //println!("sp: {:X}", self.sp);
-                    //println!("dt: {:X}", self.dt);
-                    //println!("st: {:X}", self.st);
+                    for (i, reg) in self.v.iter().enumerate() {
+                        println!("V{:X}: {:X}", i, reg);
+                    }
+                    println!("ar: {:X}", self.ar);
+                    println!("pc: {:X}", self.pc);
+                    println!("sp: {:X}", self.sp);
+                    println!("dt: {:X}", self.dt);
+                    println!("st: {:X}", self.st);
 
                     //let mut line = String::new();
                     //std::io::stdin().read_line(&mut line).unwrap();
