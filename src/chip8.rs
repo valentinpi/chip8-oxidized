@@ -111,7 +111,6 @@ impl Chip8 {
         let mut event_pump = sdl2_context.event_pump().unwrap();
         // TODO: Implement need to redraw (look at the Disp instructions)
         let mut redraw = true;
-        let mut block = false;
         let mut key_pressed = false;
         let mut key = Keycode::A;
         let mut time = sdl2_timer_system.ticks();
@@ -250,7 +249,7 @@ impl Chip8 {
                 // 8XY5 - VY is subtracted from VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
                 [0x8, x, y, 0x5] => {
                     let mut diff = (self.v[x as usize] as i32) - (self.v[y as usize] as i32);
-                    if diff > 0 {
+                    if diff >= 0 {
                         self.v[0xF] = 1;
                     } else {
                         self.v[0xF] = 0;
@@ -266,7 +265,7 @@ impl Chip8 {
                 // 8XY7 - Sets VX to VY minus VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
                 [0x8, x, y, 0x7] => {
                     let mut diff = (self.v[y as usize] as i32) - (self.v[x as usize] as i32);
-                    if diff > 0 {
+                    if diff >= 0 {
                         self.v[0xF] = 1;
                     } else {
                         self.v[0xF] = 0;
@@ -311,8 +310,8 @@ impl Chip8 {
                 [0xD, x, y, c] => {
                     self.v[0xF] = 0;
                     let mut ar = self.ar as usize;
-                    let vx: u16 = self.v[x as usize];
-                    let vy: u16 = self.v[y as usize];
+                    let vx = self.v[x as usize];
+                    let vy = self.v[y as usize];
                     let mut yi = vy;
                     // Iterate over the rows
                     while yi < (vy + (c as u16)) {
@@ -320,7 +319,7 @@ impl Chip8 {
                             break;
                         }
                         // Extract each bit from sprite
-                        let sprite_data: u8 = self.ram[ar];
+                        let sprite_data = self.ram[ar];
                         let sprite_row = [
                             (sprite_data & 0x80) >> 7,
                             (sprite_data & 0x40) >> 6,
@@ -345,18 +344,18 @@ impl Chip8 {
                         let pixel_row = &mut pixels[pixel_row_left..pixel_row_right];
 
                         // Iterate over sprite pixels
-                        let mut xi: u16 = 0;
+                        let mut xi = 0;
                         for sprite_pixel in sprite_row.iter() {
-                            let pixel: u8 = pixel_row[xi as usize];
+                            let pixel = pixel_row[xi];
                             // Collision detection
                             if pixel == 1 && *sprite_pixel == 1 {
                                 self.v[0xF] = 1;
                             }
                             // XOR the pixels from the screen buffer and the sprite
                             let result = pixel ^ *sprite_pixel;
-                            pixel_row[xi as usize] = result;
+                            pixel_row[xi] = result;
                             xi += 1;
-                            if xi >= pixel_row.len() as u16 {
+                            if xi >= pixel_row.len() {
                                 break;
                             }
                         }
@@ -367,16 +366,16 @@ impl Chip8 {
                 }
                 // EX9E - Skips the next instruction if the key stored in VX is pressed. (Usually the next instruction is a jump to skip a code block)
                 [0xE, x, 0x9, 0xE] => {
-                    let vx: u16 = self.v[x as usize];
-                    let key_pressed: bool = self.key_pad[vx as usize];
+                    let vx = self.v[x as usize];
+                    let key_pressed = self.key_pad[vx as usize];
                     if key_pressed {
                         self.pc += 2;
                     }
                 }
                 // EXA1 - Skips the next instruction if the key stored in VX isn't pressed. (Usually the next instruction is a jump to skip a code block)
                 [0xE, x, 0xA, 0x1] => {
-                    let vx: u16 = self.v[x as usize];
-                    let key_pressed: bool = self.key_pad[vx as usize];
+                    let vx = self.v[x as usize];
+                    let key_pressed = self.key_pad[vx as usize];
                     if !key_pressed {
                         self.pc += 2;
                     }
@@ -387,15 +386,17 @@ impl Chip8 {
                 }
                 // FX0A - A key press is awaited, and then stored in VX. (Blocking Operation. All instruction halted until next key event)
                 [0xF, x, 0x0, 0xA] => {
-                    block = true;
                     if key_pressed {
                         match self.key_bindings.get(&key) {
                             Some(binding) => {
                                 self.v[x as usize] = *binding as u16;
-                                block = false;
                             }
-                            _ => {}
+                            _ => {
+                                self.pc -= 2;
+                            }
                         }
+                    } else {
+                        self.pc -= 2;
                     }
                 }
                 // FX15 - Sets the delay timer to VX.
@@ -462,12 +463,7 @@ impl Chip8 {
                 }
             }
 
-            if block {
-                block = false;
-            } else {
-                self.pc += 2;
-            }
-
+            self.pc += 2;
             if self.pc >= self.ram.len() {
                 break;
             }
