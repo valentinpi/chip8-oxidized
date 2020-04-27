@@ -1,4 +1,4 @@
-use sdl2::{audio, event, keyboard::Keycode, pixels};
+use sdl2::{event, keyboard::Keycode, pixels};
 use std::collections;
 use std::convert::TryInto;
 
@@ -19,9 +19,9 @@ pub struct Chip8 {
     pc: usize,
     ar: u16, // Address register
     v: [u16; 16],
-    dt: u8,                 // Delay timer
-    st: u8,                 // Sound timer
-    stack: [usize; 0x1000], // Stack implemented as empty ascending
+    dt: u8,             // Delay timer
+    st: u8,             // Sound timer
+    stack: [usize; 48], // Stack implemented as empty ascending
     sp: usize,
     key_bindings: collections::HashMap<Keycode, usize>,
     key_pad: [bool; 16],
@@ -36,7 +36,7 @@ impl Chip8 {
             v: [0; 16],
             dt: 0,
             st: 0,
-            stack: [0; 0x1000],
+            stack: [0; 48],
             sp: 0,
             key_bindings: collections::HashMap::new(),
             key_pad: [false; 16],
@@ -77,7 +77,6 @@ impl Chip8 {
         let window_height: u32 = 640;
 
         let sdl2_context = sdl2::init().expect("Failed to initialize SDL");
-        let sdl2_audio_system = sdl2_context.audio().unwrap();
         let mut sdl2_timer_system = sdl2_context.timer().unwrap();
         let sdl2_video_system = sdl2_context.video().unwrap();
         // TODO: Perform scaling of 64x32 CHIP-8 Screen
@@ -92,14 +91,8 @@ impl Chip8 {
             .build()
             .unwrap();
 
-        let audio_spec = audio::AudioSpecDesired {
-            freq: Some(48000),
-            channels: Some(2),  // mono
-            samples: None       // default sample size
-        };
-        
         println!(
-            "{}.{}.{}",
+            "SDL2 version: {}.{}.{}",
             sdl2::version::version(),
             sdl2::version::revision(),
             sdl2::version::revision_number()
@@ -223,8 +216,9 @@ impl Chip8 {
                 }
                 // 7XNN - Adds NN to VX. (Carry flag is not changed)
                 [0x7, x, b, c] => {
-                    let val = ((b << 4) | c) as u16;
-                    self.v[x as usize] += val;
+                    let nn = ((b << 4) | c) as u32;
+                    let s: u32 = (self.v[x as usize] as u32) + nn;
+                    self.v[x as usize] = (s % 0x10000) as u16;
                 }
                 // 8XY0 - Sets VX to the value of VY.
                 [0x8, x, y, 0x0] => {
@@ -244,41 +238,41 @@ impl Chip8 {
                 }
                 // 8XY4 - Adds VY to VX. VF is set to 1 when there's a carry, and to 0 when there isn't.
                 [0x8, x, y, 0x4] => {
-                    let s = self.v[x as usize] as u32 + self.v[y as usize] as u32;
-                    if s < std::u16::MAX as u32 {
+                    let s: u32 = (self.v[x as usize] as u32) + (self.v[y as usize] as u32);
+                    if s < 0x10000 {
                         self.v[0xF] = 0;
-                        self.v[x as usize] = s as u16;
                     } else {
                         self.v[0xF] = 1;
-                        self.v[x as usize] = (s & 0xFFFF) as u16;
                     }
+                    self.v[x as usize] = (s % 0x10000) as u16;
                 }
                 // 8XY5 - VY is subtracted from VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
                 [0x8, x, y, 0x5] => {
-                    let s: i32 = self.v[x as usize] as i32 - self.v[y as usize] as i32;
+                    let mut s: i32 = self.v[x as usize] as i32 - self.v[y as usize] as i32;
                     if s > 0 {
                         self.v[0xF] = 1;
                         self.v[x as usize] = s as u16;
                     } else {
                         self.v[0xF] = 0;
-                        self.v[x as usize] = -s as u16;
+                        s = -s;
                     }
+                    self.v[x as usize] = s as u16;
                 }
                 // 8XY6 - Stores the least significant bit of VX in VF and then shifts VX to the right by 1.
                 [0x8, x, _y, 0x6] => {
-                    self.v[0xF] = self.v[x as usize] & 0x1;
+                    self.v[0xF] = self.v[x as usize] % 0x1;
                     self.v[x as usize] >>= 1;
                 }
                 // 8XY7 - Sets VX to VY minus VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
                 [0x8, x, y, 0x7] => {
-                    let s: i32 = self.v[y as usize] as i32 - self.v[x as usize] as i32;
+                    let mut s: i32 = self.v[y as usize] as i32 - self.v[x as usize] as i32;
                     if s > 0 {
                         self.v[0xF] = 1;
-                        self.v[x as usize] = s as u16;
                     } else {
                         self.v[0xF] = 0;
-                        self.v[x as usize] = -s as u16;
+                        s = -s;
                     }
+                    self.v[x as usize] = s as u16;
                 }
                 // 8XYE - Stores the most significant bit of VX in VF and then shifts VX to the left by 1.
                 [0x8, x, _y, 0xE] => {
@@ -304,9 +298,9 @@ impl Chip8 {
                 }
                 // CXNN - Sets VX to the result of a bitwise and operation on a random number (Typically: 0 to 255) and NN.
                 [0xC, x, b, c] => {
-                    let mut addr: u16 = ((b << 4) | c) as u16;
-                    addr &= rand::random::<u16>();
-                    self.v[x as usize] = addr;
+                    let mut val: u16 = ((b << 4) | c) as u16;
+                    val &= rand::random::<u8>() as u16;
+                    self.v[x as usize] = val;
                 }
                 // DXYN - Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels. Each row of 8 pixels is read as bit-coded starting from memory location I; I value doesn’t change after the execution of this instruction. As described above, VF is set to 1 if any screen pixels are flipped from set to unset when the sprite is drawn, and to 0 if that doesn’t happen
                 // - Coordinate (VX, VY)                            - Check
@@ -340,9 +334,11 @@ impl Chip8 {
 
                         // Get the current row in the screen buffer
                         let pixel_row_coord = (yi as usize) * CHIP8_SCREEN_WIDTH + (vx as usize);
-                        // 24, because we read 8 pixels of 3 bytes each (RGB24)
                         let (pixel_row_left, mut pixel_row_right) =
                             (pixel_row_coord, pixel_row_coord + 8);
+                        if pixel_row_left >= NUM_PIXELS {
+                            break;
+                        }
                         if pixel_row_right > NUM_PIXELS {
                             pixel_row_right = NUM_PIXELS;
                         }
@@ -360,7 +356,7 @@ impl Chip8 {
                             let result = pixel ^ *sprite_pixel;
                             pixel_row[xi as usize] = result;
                             xi += 1;
-                            if xi >= 8 as u16 {
+                            if xi >= pixel_row.len() as u16 {
                                 break;
                             }
                         }
@@ -400,8 +396,6 @@ impl Chip8 {
                             }
                             _ => {}
                         }
-                    } else {
-                        sdl2_timer_system.delay(1);
                     }
                 }
                 // FX15 - Sets the delay timer to VX.
@@ -500,6 +494,8 @@ impl Chip8 {
                 redraw = false;
             }
 
+            sdl2_timer_system.delay(1);
+
             let end = sdl2_timer_system.ticks() - time;
             if end >= 16 {
                 if self.dt > 0 {
@@ -514,14 +510,14 @@ impl Chip8 {
             #[cfg(debug_assertions)]
             {
                 if instruction[0] != 6 {
-                    for (i, reg) in self.v.iter().enumerate() {
-                        println!("V{:X}: {:X}", i, reg);
-                    }
-                    println!("ar: {:X}", self.ar);
-                    println!("pc: {:X}", self.pc);
-                    println!("sp: {:X}", self.sp);
-                    println!("dt: {:X}", self.dt);
-                    println!("st: {:X}", self.st);
+                    //for (i, reg) in self.v.iter().enumerate() {
+                    //    println!("V{:X}: {:X}", i, reg);
+                    //}
+                    //println!("ar: {:X}", self.ar);
+                    //println!("pc: {:X}", self.pc);
+                    //println!("sp: {:X}", self.sp);
+                    //println!("dt: {:X}", self.dt);
+                    //println!("st: {:X}", self.st);
 
                     //let mut line = String::new();
                     //std::io::stdin().read_line(&mut line).unwrap();
