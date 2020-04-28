@@ -98,6 +98,10 @@ impl Chip8 {
             sdl2::version::revision_number()
         );
 
+        #[cfg(debug_assertions)] {
+            println!("---- CHIP8 Interactive Debugger ----");
+        }
+
         let mut pixels: [u8; NUM_PIXELS] = [0; NUM_PIXELS];
         let texture_creator = canvas.texture_creator();
         let mut texture = texture_creator
@@ -248,14 +252,12 @@ impl Chip8 {
                 }
                 // 8XY5 - VY is subtracted from VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
                 [0x8, x, y, 0x5] => {
-                    let mut diff = (self.v[x as usize] as i32) - (self.v[y as usize] as i32);
+                    let diff = (self.v[x as usize] as i32) - (self.v[y as usize] as i32);
                     if diff >= 0 {
                         self.v[0xF] = 1;
                     } else {
                         self.v[0xF] = 0;
-                        diff = -diff;
                     }
-                    self.v[x as usize] = diff as u16;
                 }
                 // 8XY6 - Stores the least significant bit of VX in VF and then shifts VX to the right by 1.
                 [0x8, x, _y, 0x6] => {
@@ -423,16 +425,11 @@ impl Chip8 {
                 }
                 // FX33 - Stores the binary-coded decimal representation of VX, with the most significant of three digits at the address in I, the middle digit at I plus 1, and the least significant digit at I plus 2. (In other words, take the decimal representation of VX, place the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.)
                 [0xF, x, 0x3, 0x3] => {
-                    self.ram[self.ar as usize] = ((self.v[x as usize] - self.v[x as usize] % 100)
-                        / 100)
-                        .try_into()
-                        .unwrap();
-                    self.ram[(self.ar + 1) as usize] =
-                        ((self.v[x as usize] - self.v[x as usize] % 10) / 10)
-                            .try_into()
-                            .unwrap();
-                    self.ram[(self.ar + 2) as usize] =
-                        (self.v[x as usize] % 10).try_into().unwrap();
+                    let ar = self.ar;
+                    let vx = self.v[x as usize];
+                    self.ram[ar as usize] = ((vx - (vx % 100)) / 100).try_into().unwrap();
+                    self.ram[(ar + 1) as usize] = ((vx - vx % 10) / 10).try_into().unwrap();
+                    self.ram[(ar + 2) as usize] = (vx % 10).try_into().unwrap();
                 }
                 // FX55 - Stores V0 to VX (including VX) in memory starting at address I. The offset from I is increased by 1 for each value written, but I itself is left unmodified.
                 [0xF, x, 0x5, 0x5] => {
@@ -452,8 +449,7 @@ impl Chip8 {
                     let mut ar = self.ar as usize;
                     let mut xi = 0;
                     while xi < (x + 1) {
-                        let reg = &mut self.v[xi as usize];
-                        *reg = u16::from_be_bytes([self.ram[ar], self.ram[ar + 1]]);
+                        self.v[xi as usize] = u16::from_be_bytes([self.ram[ar], self.ram[ar + 1]]);
                         ar += 2;
                         xi += 1;
                     }
@@ -505,18 +501,42 @@ impl Chip8 {
 
             #[cfg(debug_assertions)]
             {
-                if instruction[0] != 6 {
-                    for (i, reg) in self.v.iter().enumerate() {
-                        println!("V{:X}: {:X}", i, reg);
+                loop {
+                    let mut line = String::new();
+                    std::io::stdin().read_line(&mut line).unwrap();
+                    match line.trim() {
+                        "reg" => {
+                            println!("pc: {:X}", self.pc);
+                            for (i, reg) in self.v.iter().enumerate() {
+                                println!("V{:X}: {:X}", i, reg);
+                            }
+                        }
+                        "stack" => {
+                            for (i, elem) in self.stack.iter().rev().enumerate() {
+                                println!("{:02X}: {:03X}", (0x2F - i), elem);
+                            }
+                            println!("sp: {:X}", self.sp);
+                        }
+                        "ram" => {
+                            for (i, elem) in self.ram.iter().rev().enumerate() {
+                                println!("{:03X}: {:02X}", (0xFFF - i), elem);
+                            }
+                            println!("ar: {:X}", self.ar);
+                        }
+                        "timers" => {
+                            println!("dt: {:X}", self.dt);
+                            println!("st: {:X}", self.st);
+                        }
+                        "c" | ""  => {
+                            break;
+                        }
+                        "q" => {
+                            break 'running;
+                        }
+                        _ => {
+                            println!("Unknown command");
+                        }
                     }
-                    println!("ar: {:X}", self.ar);
-                    println!("pc: {:X}", self.pc);
-                    println!("sp: {:X}", self.sp);
-                    println!("dt: {:X}", self.dt);
-                    println!("st: {:X}", self.st);
-
-                    //let mut line = String::new();
-                    //std::io::stdin().read_line(&mut line).unwrap();
                 }
             }
         }
