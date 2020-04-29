@@ -1,6 +1,7 @@
 use sdl2::{event, keyboard::Keycode, pixels};
 use std::collections;
 use std::convert::TryInto;
+use std::io::Write;
 
 const CHIP8_SCREEN_WIDTH: usize = 64;
 const CHIP8_SCREEN_HEIGHT: usize = 32;
@@ -99,7 +100,7 @@ impl Chip8 {
         );
 
         #[cfg(debug_assertions)] {
-            println!("---- CHIP8 Interactive Debugger ----");
+            println!("----- CHIP8 Oxidized Interactive Debugger -----");
         }
 
         let mut pixels: [u8; NUM_PIXELS] = [0; NUM_PIXELS];
@@ -502,6 +503,8 @@ impl Chip8 {
             #[cfg(debug_assertions)]
             {
                 loop {
+                    print!("> ");
+                    std::io::stdout().flush().unwrap();
                     let mut line = String::new();
                     std::io::stdin().read_line(&mut line).unwrap();
                     match line.trim() {
