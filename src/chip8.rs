@@ -223,7 +223,7 @@ impl Chip8 {
                 [0x7, x, b, c] => {
                     let nn = ((b << 4) | c) as u32;
                     let sum = (self.v[x as usize] as u32) + nn;
-                    self.v[x as usize] = (sum % 0x10000) as u16;
+                    self.v[x as usize] = (sum & 0xFFFF) as u16;
                 }
                 // 8XY0 - Sets VX to the value of VY.
                 [0x8, x, y, 0x0] => {
@@ -249,7 +249,7 @@ impl Chip8 {
                     } else {
                         self.v[0xF] = 1;
                     }
-                    self.v[x as usize] = (sum % 0x10000) as u16;
+                    self.v[x as usize] = (sum & 0xFFFF) as u16;
                 }
                 // 8XY5 - VY is subtracted from VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
                 [0x8, x, y, 0x5] => {
@@ -274,11 +274,11 @@ impl Chip8 {
                         self.v[0xF] = 0;
                         diff = -diff;
                     }
-                    self.v[x as usize] = (diff % 0x10000) as u16;
+                    self.v[x as usize] = diff as u16;
                 }
                 // 8XYE - Stores the most significant bit of VX in VF and then shifts VX to the left by 1.
                 [0x8, x, _y, 0xE] => {
-                    self.v[0xF] = self.v[x as usize] & 0x8000;
+                    self.v[0xF] = (self.v[x as usize] & 0x8000) >> 15;
                     self.v[x as usize] <<= 1;
                 }
                 // 9XY0 - Skips the next instruction if VX doesn't equal VY.
@@ -296,7 +296,7 @@ impl Chip8 {
                 [0xB, a, b, c] => {
                     let mut addr = ((a as usize) << 8) | ((b as usize) << 4) | (c as usize);
                     addr += self.v[0] as usize;
-                    self.pc = (addr % 0x1000) - 2;
+                    self.pc = (addr & 0xFFF) - 2;
                 }
                 // CXNN - Sets VX to the result of a bitwise and operation on a random number (Typically: 0 to 255) and NN.
                 [0xC, x, b, c] => {
@@ -404,18 +404,18 @@ impl Chip8 {
                 }
                 // FX15 - Sets the delay timer to VX.
                 [0xF, x, 0x1, 0x5] => {
-                    self.dt = self.v[x as usize] as u8;
+                    self.dt = (self.v[x as usize] & 0xFFFF) as u8;
                 }
                 // FX18 - Sets the sound timer to VX.
                 [0xF, x, 0x1, 0x8] => {
-                    self.st = self.v[x as usize] as u8;
+                    self.st = (self.v[x as usize] & 0xFFFF) as u8;
                 }
                 // FX1E - Adds VX to I. VF is set to 1 when there is a range overflow (I+VX>0xFFF), and to 0 when there isn't.
                 [0xF, x, 0x1, 0xE] => {
                     self.ar += self.v[x as usize];
                     if self.ar > 0xFFF {
                         self.v[0xF] = 1;
-                        self.ar %= 0x1000;
+                        self.ar &= 0xFFF;
                     } else {
                         self.v[0xF] = 0;
                     }
@@ -434,24 +434,20 @@ impl Chip8 {
                 }
                 // FX55 - Stores V0 to VX (including VX) in memory starting at address I. The offset from I is increased by 1 for each value written, but I itself is left unmodified.
                 [0xF, x, 0x5, 0x5] => {
-                    let mut ar = self.ar as usize;
+                    let ar = self.ar as usize;
                     let mut xi = 0;
-                    while xi < (x + 1) {
-                        let reg = self.v[xi as usize];
-                        let bytes = reg.to_be_bytes();
-                        self.ram[ar] = bytes[1];
-                        self.ram[ar + 1] = bytes[0];
-                        ar += 2;
+                    while xi <= (x as usize) {
+                        let byte = (self.v[xi] as u32) % 0x100;
+                        self.ram[ar + xi] = byte as u8;
                         xi += 1;
                     }
                 }
                 // FX65 - Fills V0 to VX (including VX) with values from memory starting at address I. The offset from I is increased by 1 for each value written, but I itself is left unmodified.
                 [0xF, x, 0x6, 0x5] => {
-                    let mut ar = self.ar as usize;
+                    let ar = self.ar as usize;
                     let mut xi = 0;
-                    while xi <= x {
-                        self.v[xi as usize] = self.ram[ar] as u16;
-                        ar += 1;
+                    while xi <= (x as usize) {
+                        self.v[xi] = self.ram[ar + xi] as u16;
                         xi += 1;
                     }
                 }
