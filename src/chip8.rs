@@ -58,6 +58,16 @@ impl Chip8 {
         chip8.key_bindings.insert(Keycode::Num7, 0x7);
         chip8.key_bindings.insert(Keycode::Num8, 0x8);
         chip8.key_bindings.insert(Keycode::Num9, 0x9);
+        chip8.key_bindings.insert(Keycode::Kp0, 0x0);
+        chip8.key_bindings.insert(Keycode::Kp1, 0x1);
+        chip8.key_bindings.insert(Keycode::Kp2, 0x2);
+        chip8.key_bindings.insert(Keycode::Kp3, 0x3);
+        chip8.key_bindings.insert(Keycode::Kp4, 0x4);
+        chip8.key_bindings.insert(Keycode::Kp5, 0x5);
+        chip8.key_bindings.insert(Keycode::Kp6, 0x6);
+        chip8.key_bindings.insert(Keycode::Kp7, 0x7);
+        chip8.key_bindings.insert(Keycode::Kp8, 0x8);
+        chip8.key_bindings.insert(Keycode::Kp9, 0x9);
         chip8.key_bindings.insert(Keycode::A, 0xA);
         chip8.key_bindings.insert(Keycode::B, 0xB);
         chip8.key_bindings.insert(Keycode::C, 0xC);
@@ -430,9 +440,9 @@ impl Chip8 {
                 [0xF, x, 0x3, 0x3] => {
                     let ar = self.ar;
                     let vx = self.v[x as usize];
-                    self.ram[ar as usize] = ((vx - (vx % 100)) / 100).try_into().unwrap();
-                    self.ram[(ar + 1) as usize] = ((vx - vx % 10) / 10).try_into().unwrap();
-                    self.ram[(ar + 2) as usize] = (vx % 10).try_into().unwrap();
+                    self.ram[ar as usize] = ((vx - (vx % 100)) / 100) as u8;
+                    self.ram[(ar + 1) as usize] = ((vx - vx % 10) / 10) as u8;
+                    self.ram[(ar + 2) as usize] = (vx % 10) as u8;
                 }
                 // FX55 - Stores V0 to VX (including VX) in memory starting at address I. The offset from I is increased by 1 for each value written, but I itself is left unmodified.
                 [0xF, x, 0x5, 0x5] => {
