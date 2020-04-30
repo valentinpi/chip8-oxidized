@@ -324,9 +324,9 @@ impl Chip8 {
                 [0xD, x, y, c] => {
                     self.v[0xF] = 0;
                     let mut ar = self.ar as usize;
-                    let x = self.v[x as usize] as usize;
-                    let ye = (self.v[y as usize] + (c as u16)) as usize;
-                    let mut yi = self.v[y as usize] as usize;
+                    let x = (self.v[x as usize] as usize) % CHIP8_SCREEN_WIDTH;
+                    let mut yi = (self.v[y as usize] as usize) % CHIP8_SCREEN_HEIGHT;
+                    let ye = yi + (c as usize);
                     // Iterate over the rows
                     while yi < ye {
                         if yi >= CHIP8_SCREEN_HEIGHT {
