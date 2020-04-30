@@ -253,12 +253,14 @@ impl Chip8 {
                 }
                 // 8XY5 - VY is subtracted from VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
                 [0x8, x, y, 0x5] => {
-                    let diff = (self.v[x as usize] as i32) - (self.v[y as usize] as i32);
+                    let mut diff = (self.v[x as usize] as i32) - (self.v[y as usize] as i32);
                     if diff >= 0 {
                         self.v[0xF] = 1;
                     } else {
                         self.v[0xF] = 0;
+                        diff = -diff;
                     }
+                    self.v[x as usize] = diff as u16;
                 }
                 // 8XY6 - Stores the least significant bit of VX in VF and then shifts VX to the right by 1.
                 [0x8, x, _y, 0x6] => {
