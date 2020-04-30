@@ -1,7 +1,5 @@
 use sdl2::{event, keyboard::Keycode, pixels};
 use std::collections;
-use std::convert::TryInto;
-use std::io::Write;
 
 const CHIP8_SCREEN_WIDTH: usize = 64;
 const CHIP8_SCREEN_HEIGHT: usize = 32;
@@ -109,7 +107,8 @@ impl Chip8 {
             sdl2::version::revision_number()
         );
 
-        #[cfg(debug_assertions)] {
+        #[cfg(debug_assertions)]
+        {
             println!("----- CHIP8 Oxidized Interactive Debugger -----");
         }
 
@@ -241,15 +240,15 @@ impl Chip8 {
                 }
                 // 8XY1 - Sets VX to VX or VY. (Bitwise OR operation)
                 [0x8, x, y, 0x1] => {
-                    self.v[x as usize] = self.v[x as usize] | self.v[y as usize];
+                    self.v[x as usize] |= self.v[y as usize];
                 }
                 // 8XY2 - Sets VX to VX and VY. (Bitwise AND operation)
                 [0x8, x, y, 0x2] => {
-                    self.v[x as usize] = self.v[x as usize] & self.v[y as usize];
+                    self.v[x as usize] &= self.v[y as usize];
                 }
                 // 8XY3 - Sets VX to VX xor VY.
                 [0x8, x, y, 0x3] => {
-                    self.v[x as usize] = self.v[x as usize] ^ self.v[y as usize];
+                    self.v[x as usize] ^= self.v[y as usize];
                 }
                 // 8XY4 - Adds VY to VX. VF is set to 1 when there's a carry, and to 0 when there isn't.
                 [0x8, x, y, 0x4] => {
@@ -308,7 +307,7 @@ impl Chip8 {
                 [0xB, a, b, c] => {
                     let mut addr = ((a as usize) << 8) | ((b as usize) << 4) | (c as usize);
                     addr += self.v[0] as usize;
-                    self.pc = (addr & 0xFFF) - 2;
+                    self.pc = addr - 2;
                 }
                 // CXNN - Sets VX to the result of a bitwise and operation on a random number (Typically: 0 to 255) and NN.
                 [0xC, x, b, c] => {
@@ -325,12 +324,12 @@ impl Chip8 {
                 [0xD, x, y, c] => {
                     self.v[0xF] = 0;
                     let mut ar = self.ar as usize;
-                    let vx = self.v[x as usize];
-                    let vy = self.v[y as usize];
-                    let mut yi = vy;
+                    let x = self.v[x as usize] as usize;
+                    let ye = (self.v[y as usize] + (c as u16)) as usize;
+                    let mut yi = self.v[y as usize] as usize;
                     // Iterate over the rows
-                    while yi < (vy + (c as u16)) {
-                        if yi >= CHIP8_SCREEN_HEIGHT as u16 {
+                    while yi < ye {
+                        if yi >= CHIP8_SCREEN_HEIGHT {
                             break;
                         }
                         // Extract each bit from sprite
@@ -347,9 +346,9 @@ impl Chip8 {
                         ];
 
                         // Get the current row in the screen buffer
-                        let pixel_row_coord = (yi as usize) * CHIP8_SCREEN_WIDTH + (vx as usize);
-                        let (pixel_row_left, mut pixel_row_right) =
-                            (pixel_row_coord, pixel_row_coord + 8);
+                        let pixel_row_coord = yi * CHIP8_SCREEN_WIDTH + x;
+                        let pixel_row_left = pixel_row_coord;
+                        let mut pixel_row_right = pixel_row_coord + 8;
                         if pixel_row_left >= NUM_PIXELS {
                             break;
                         }
@@ -382,16 +381,16 @@ impl Chip8 {
                 // EX9E - Skips the next instruction if the key stored in VX is pressed. (Usually the next instruction is a jump to skip a code block)
                 [0xE, x, 0x9, 0xE] => {
                     let vx = self.v[x as usize];
-                    let key_pressed = self.key_pad[vx as usize];
-                    if key_pressed {
+                    let keyp = self.key_pad[vx as usize];
+                    if keyp {
                         self.pc += 2;
                     }
                 }
                 // EXA1 - Skips the next instruction if the key stored in VX isn't pressed. (Usually the next instruction is a jump to skip a code block)
                 [0xE, x, 0xA, 0x1] => {
                     let vx = self.v[x as usize];
-                    let key_pressed = self.key_pad[vx as usize];
-                    if !key_pressed {
+                    let keyp = self.key_pad[vx as usize];
+                    if !keyp {
                         self.pc += 2;
                     }
                 }
@@ -416,11 +415,11 @@ impl Chip8 {
                 }
                 // FX15 - Sets the delay timer to VX.
                 [0xF, x, 0x1, 0x5] => {
-                    self.dt = (self.v[x as usize] & 0xFFFF) as u8;
+                    self.dt = self.v[x as usize] as u8;
                 }
                 // FX18 - Sets the sound timer to VX.
                 [0xF, x, 0x1, 0x8] => {
-                    self.st = (self.v[x as usize] & 0xFFFF) as u8;
+                    self.st = self.v[x as usize] as u8;
                 }
                 // FX1E - Adds VX to I. VF is set to 1 when there is a range overflow (I+VX>0xFFF), and to 0 when there isn't.
                 [0xF, x, 0x1, 0xE] => {
@@ -434,23 +433,22 @@ impl Chip8 {
                 }
                 // FX29 - Sets I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 4x5 font.
                 [0xF, x, 0x2, 0x9] => {
-                    self.ar = (self.v[x as usize] % 16) * 5;
+                    self.ar = self.v[x as usize] * 5;
                 }
                 // FX33 - Stores the binary-coded decimal representation of VX, with the most significant of three digits at the address in I, the middle digit at I plus 1, and the least significant digit at I plus 2. (In other words, take the decimal representation of VX, place the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.)
                 [0xF, x, 0x3, 0x3] => {
-                    let ar = self.ar;
+                    let ar = self.ar as usize;
                     let vx = self.v[x as usize];
-                    self.ram[ar as usize] = ((vx - (vx % 100)) / 100) as u8;
-                    self.ram[(ar + 1) as usize] = ((vx - vx % 10) / 10) as u8;
-                    self.ram[(ar + 2) as usize] = (vx % 10) as u8;
+                    self.ram[ar] = ((vx - (vx % 100)) / 100) as u8;
+                    self.ram[(ar + 1)] = ((vx - vx % 10) / 10) as u8;
+                    self.ram[(ar + 2)] = (vx % 10) as u8;
                 }
                 // FX55 - Stores V0 to VX (including VX) in memory starting at address I. The offset from I is increased by 1 for each value written, but I itself is left unmodified.
                 [0xF, x, 0x5, 0x5] => {
                     let ar = self.ar as usize;
                     let mut xi = 0;
                     while xi <= (x as usize) {
-                        let byte = (self.v[xi] as u32) % 0x100;
-                        self.ram[ar + xi] = byte as u8;
+                        self.ram[ar + xi] = self.v[xi] as u8;
                         xi += 1;
                     }
                 }
@@ -472,6 +470,8 @@ impl Chip8 {
             if self.pc >= self.ram.len() {
                 break;
             }
+
+            key_pressed = false;
 
             if redraw {
                 canvas.clear();
@@ -511,6 +511,7 @@ impl Chip8 {
             #[cfg(debug_assertions)]
             {
                 loop {
+                    use std::io::Write;
                     print!("> ");
                     std::io::stdout().flush().unwrap();
                     let mut line = String::new();
@@ -518,6 +519,10 @@ impl Chip8 {
                     match line.trim() {
                         "reg" => {
                             println!("pc: {:X}", self.pc);
+                            println!("ar: {:X}", self.ar);
+                            println!("sp: {:X}", self.sp);
+                            println!("dt: {:X}", self.dt);
+                            println!("st: {:X}", self.st);
                             for (i, reg) in self.v.iter().enumerate() {
                                 println!("V{:X}: {:X}", i, reg);
                             }
@@ -526,19 +531,25 @@ impl Chip8 {
                             for (i, elem) in self.stack.iter().rev().enumerate() {
                                 println!("{:02X}: {:03X}", (0x2F - i), elem);
                             }
-                            println!("sp: {:X}", self.sp);
                         }
                         "ram" => {
                             for (i, elem) in self.ram.iter().rev().enumerate() {
                                 println!("{:03X}: {:02X}", (0xFFF - i), elem);
                             }
-                            println!("ar: {:X}", self.ar);
                         }
-                        "timers" => {
-                            println!("dt: {:X}", self.dt);
-                            println!("st: {:X}", self.st);
+                        "disp" => {
+                            for (i, pixel) in pixels.iter().enumerate() {
+                                if (i > 0) && (i % CHIP8_SCREEN_WIDTH == 0) {
+                                    println!("");
+                                }
+                                print!("{}", pixel);
+                            }
+                            println!("");
                         }
-                        "c" | ""  => {
+                        "h" => {
+                            println!("Available commands: reg, stack, ram, disp, h, c, q");
+                        }
+                        "c" | "" => {
                             break;
                         }
                         "q" => {
