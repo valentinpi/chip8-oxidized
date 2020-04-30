@@ -449,9 +449,9 @@ impl Chip8 {
                 [0xF, x, 0x6, 0x5] => {
                     let mut ar = self.ar as usize;
                     let mut xi = 0;
-                    while xi < (x + 1) {
-                        self.v[xi as usize] = u16::from_be_bytes([self.ram[ar], self.ram[ar + 1]]);
-                        ar += 2;
+                    while xi <= x {
+                        self.v[xi as usize] = self.ram[ar] as u16;
+                        ar += 1;
                         xi += 1;
                     }
                 }
