@@ -230,9 +230,9 @@ impl Chip8 {
                 }
                 // 7XNN - Adds NN to VX. (Carry flag is not changed)
                 [0x7, x, b, c] => {
-                    let nn = ((b << 4) | c) as u32;
-                    let sum = (self.v[x as usize] as u32) + nn;
-                    self.v[x as usize] = (sum & 0xFFFF) as u16;
+                    let nn = ((b << 4) | c) as u16;
+                    let sum = self.v[x as usize] + nn;
+                    self.v[x as usize] = (sum & 0xFF) as u16;
                 }
                 // 8XY0 - Sets VX to the value of VY.
                 [0x8, x, y, 0x0] => {
@@ -252,13 +252,13 @@ impl Chip8 {
                 }
                 // 8XY4 - Adds VY to VX. VF is set to 1 when there's a carry, and to 0 when there isn't.
                 [0x8, x, y, 0x4] => {
-                    let sum = (self.v[x as usize] as u32) + (self.v[y as usize] as u32);
-                    if sum < 0x10000 {
+                    let sum = self.v[x as usize] + self.v[y as usize];
+                    if sum < 0x100 {
                         self.v[0xF] = 0;
                     } else {
                         self.v[0xF] = 1;
                     }
-                    self.v[x as usize] = (sum & 0xFFFF) as u16;
+                    self.v[x as usize] = sum & 0xFF;
                 }
                 // 8XY5 - VY is subtracted from VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
                 [0x8, x, y, 0x5] => {
