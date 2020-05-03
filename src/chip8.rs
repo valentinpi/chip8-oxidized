@@ -1,4 +1,4 @@
-use sdl2::{event, keyboard::Keycode, pixels};
+use sdl2::{audio, event, keyboard::Keycode, pixels};
 use std::collections;
 
 const CHIP8_SCREEN_WIDTH: usize = 64;
@@ -86,19 +86,9 @@ impl Chip8 {
         let window_height: u32 = 640;
 
         let sdl2_context = sdl2::init().expect("Failed to initialize SDL");
+        let sdl2_audio_system = sdl2_context.audio().unwrap();
         let mut sdl2_timer_system = sdl2_context.timer().unwrap();
         let sdl2_video_system = sdl2_context.video().unwrap();
-        // TODO: Perform scaling of 64x32 CHIP-8 Screen
-        let window = sdl2_video_system
-            .window("chip8-oxidized", window_width, window_height)
-            .build()
-            .unwrap();
-        let mut canvas = window
-            .into_canvas()
-            .accelerated()
-            .present_vsync()
-            .build()
-            .unwrap();
 
         println!(
             "SDL2 version: {}.{}.{}",
@@ -111,6 +101,56 @@ impl Chip8 {
         {
             println!("----- CHIP8 Oxidized Interactive Debugger -----");
         }
+
+        let spec = audio::AudioSpecDesired {
+            channels: Some(1),
+            freq: Some(44100),
+            samples: None,
+        };
+        let audio_device = sdl2_audio_system
+            .open_playback(None, &spec, |spec| {
+                struct SquareWave {
+                    phase_inc: f32,
+                    phase: f32,
+                    volume: f32,
+                };
+
+                impl audio::AudioCallback for SquareWave {
+                    // Data channel
+                    type Channel = f32;
+
+                    fn callback(&mut self, out: &mut [f32]) {
+                        // Generate square wave
+                        for x in out.iter_mut() {
+                            if self.phase <= 0.5 {
+                                *x = self.volume;
+                            } else {
+                                *x = -self.volume;
+                            };
+                            self.phase = (self.phase + self.phase_inc) % 1.0;
+                        }
+                    }
+                }
+
+                return SquareWave {
+                    phase: 0.0,
+                    phase_inc: 440.0 / spec.freq as f32,
+                    volume: 0.10,
+                };
+            })
+            .unwrap();
+
+        // TODO: Perform scaling of 64x32 CHIP-8 Screen
+        let window = sdl2_video_system
+            .window("chip8-oxidized", window_width, window_height)
+            .build()
+            .unwrap();
+        let mut canvas = window
+            .into_canvas()
+            .accelerated()
+            .present_vsync()
+            .build()
+            .unwrap();
 
         let mut pixels: [u8; NUM_PIXELS] = [0; NUM_PIXELS];
         let texture_creator = canvas.texture_creator();
@@ -420,6 +460,10 @@ impl Chip8 {
                 // FX18 - Sets the sound timer to VX.
                 [0xF, x, 0x1, 0x8] => {
                     self.st = self.v[x as usize] as u8;
+
+                    if self.st > 0 {
+                        audio_device.resume();
+                    }
                 }
                 // FX1E - Adds VX to I. VF is set to 1 when there is a range overflow (I+VX>0xFFF), and to 0 when there isn't.
                 [0xF, x, 0x1, 0xE] => {
@@ -504,6 +548,9 @@ impl Chip8 {
                 }
                 if self.st > 0 {
                     self.st -= 1;
+                    if self.st == 0 {
+                        audio_device.pause();
+                    }
                 }
                 time = sdl2_timer_system.ticks();
             }
