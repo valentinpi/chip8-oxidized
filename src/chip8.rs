@@ -102,6 +102,7 @@ impl Chip8 {
             println!("----- CHIP8 Oxidized Interactive Debugger -----");
         }
 
+        // TODO:
         let spec = audio::AudioSpecDesired {
             channels: Some(1),
             freq: Some(44100),
@@ -163,7 +164,6 @@ impl Chip8 {
             .unwrap();
 
         let mut event_pump = sdl2_context.event_pump().unwrap();
-        // TODO: Implement need to redraw (look at the Disp instructions)
         let mut redraw = true;
         let mut key_pressed = false;
         let mut key = Keycode::A;
@@ -440,6 +440,7 @@ impl Chip8 {
                 }
                 // FX0A - A key press is awaited, and then stored in VX. (Blocking Operation. All instruction halted until next key event)
                 [0xF, x, 0x0, 0xA] => {
+                    // TODO:
                     if key_pressed {
                         match self.key_bindings.get(&key) {
                             Some(binding) => {
@@ -459,6 +460,7 @@ impl Chip8 {
                 }
                 // FX18 - Sets the sound timer to VX.
                 [0xF, x, 0x1, 0x8] => {
+                    // TODO:
                     self.st = self.v[x as usize] as u8;
 
                     if self.st > 0 {
@@ -517,6 +519,7 @@ impl Chip8 {
 
             key_pressed = false;
 
+            // TODO:
             if redraw {
                 canvas.clear();
 
@@ -539,8 +542,8 @@ impl Chip8 {
                 redraw = false;
             }
 
+            // TODO:
             sdl2_timer_system.delay(1);
-
             let end = sdl2_timer_system.ticks() - time;
             if end >= 16 {
                 if self.dt > 0 {
