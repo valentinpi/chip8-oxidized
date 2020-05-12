@@ -1,6 +1,6 @@
-mod chip8;
+mod schip8;
 
-use chip8::Chip8;
+use schip8::SChip8;
 use sdl2::{audio, event, keyboard::Keycode, pixels};
 use std::{collections::HashMap, env, fs, io};
 
@@ -16,10 +16,7 @@ fn main() -> Result<(), io::Error> {
     let file: Vec<u8> = fs::read(&args[1]).expect(error_message.as_str());
     println!("{} is {} byte long", &args[1], file.len());
 
-    let mut chip8 = Chip8::new(file.clone());
-
-    let window_width: u32 = 1280;
-    let window_height: u32 = 640;
+    let mut schip8 = SChip8::new(file.clone());
 
     let sdl2_context = sdl2::init().expect("Failed to initialize SDL");
     let sdl2_audio_system = sdl2_context.audio().unwrap();
@@ -100,9 +97,12 @@ fn main() -> Result<(), io::Error> {
         })
         .unwrap();
 
-    // TODO: Perform scaling of 64x32 CHIP-8 Screen
+    let window_width: u32 = (schip8::SCHIP8_SCREEN_WIDTH as u32) * 20;
+    let window_height: u32 = (schip8::SCHIP8_SCREEN_HEIGHT as u32) * 20;
+
     let window = sdl2_video_system
-        .window("chip8-oxidized", window_width, window_height)
+        .window(["chip8-oxidized", &args[1]].join(" - ").as_str(), window_width, window_height)
+        .resizable()
         .build()
         .unwrap();
     let mut canvas = window
@@ -130,7 +130,7 @@ fn main() -> Result<(), io::Error> {
                         key = 0;
                         match key_bindings.get(&code) {
                             Some(binding) => {
-                                chip8.key_pad[*binding] = true;
+                                schip8.key_pad[*binding] = true;
                                 key = *binding;
                             }
                             None => {}
@@ -142,7 +142,7 @@ fn main() -> Result<(), io::Error> {
                         let code = keycode.unwrap();
                         match key_bindings.get(&code) {
                             Some(binding) => {
-                                chip8.key_pad[*binding] = false;
+                                schip8.key_pad[*binding] = false;
                             }
                             None => {}
                         }
@@ -152,18 +152,18 @@ fn main() -> Result<(), io::Error> {
             }
         }
 
-        chip8.run(key, &mut redraw);
+        schip8.run(key, &mut redraw);
 
         sdl2_timer_system.delay(1);
         let end = sdl2_timer_system.ticks() - time;
         if end >= 16 {
-            if chip8.dt > 0 {
-                chip8.dt -= 1;
+            if schip8.dt > 0 {
+                schip8.dt -= 1;
             }
-            if chip8.st > 0 {
-                chip8.st -= 1;
+            if schip8.st > 0 {
+                schip8.st -= 1;
                 audio_device.resume();
-                if chip8.st == 0 {
+                if schip8.st == 0 {
                     audio_device.pause();
                 }
             }
@@ -177,12 +177,12 @@ fn main() -> Result<(), io::Error> {
             let mut texture = texture_creator
                 .create_texture_streaming(
                     pixels::PixelFormatEnum::RGB24,
-                    chip8::CHIP8_SCREEN_WIDTH as u32,
-                    chip8::CHIP8_SCREEN_HEIGHT as u32,
+                    schip8::SCHIP8_SCREEN_WIDTH as u32,
+                    schip8::SCHIP8_SCREEN_HEIGHT as u32,
                 )
                 .unwrap();
-            let mut texture_data: [u8; chip8::NUM_PIXELS * 3] = [0; chip8::NUM_PIXELS * 3];
-            for (i, pixel) in chip8.screen.iter().enumerate() {
+            let mut texture_data: [u8; schip8::NUM_PIXELS * 3] = [0; schip8::NUM_PIXELS * 3];
+            for (i, pixel) in schip8.screen.iter().enumerate() {
                 let mut color = 0x00;
                 if *pixel == 1 {
                     color = 0xFF;
@@ -195,7 +195,7 @@ fn main() -> Result<(), io::Error> {
                 .update(
                     None,
                     &texture_data,
-                    (chip8::CHIP8_SCREEN_WIDTH * 3) as usize,
+                    (schip8::SCHIP8_SCREEN_WIDTH * 3) as usize,
                 )
                 .unwrap();
             canvas.copy(&texture, None, None).unwrap();
