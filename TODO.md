@@ -1,4 +1,4 @@
-# TODO-List für the chip8-oxidized emulator
+# TODO-List for the chip8-oxidized emulator
 
 - [ ] Emulator
     - [x] Implement remaining instructions
