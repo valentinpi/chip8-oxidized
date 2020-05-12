@@ -10,3 +10,11 @@ edition = "2018"
 rand = "0.7.3"
 #sdl2 = "0.34"
 sdl2 = { version = "0.34", features = ["bundled", "static-link"] }
+
+[[bin]]
+name = "chip8-oxidized"
+path = "src/chip8/main.rs"
+
+[[bin]]
+name = "schip8-oxidized"
+path = "src/schip8/main.rs"

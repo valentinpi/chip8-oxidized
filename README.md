@@ -1,5 +1,5 @@
 # chip8-oxidized
-## CHIP-8 Interpreter written in Rust 
+## CHIP-8 and SCHIP-8 Interpreter written in Rust 
 
 This is our project for the Rust lecture on our university.
 
@@ -9,6 +9,6 @@ About the Chip8 Architecture
 - http://mattmik.com/files/chip8/mastering/chip8.html
 - https://github.com/mattmikolay/chip-8/wiki/CHIP%E2%80%908-Technical-Reference
 
-Chip8 Games
+Chip8 and Super Chip8 Games
 - http://www.pong-story.com/chip8/
 - http://chip8.sourceforge.net/chip8-1.1.pdf
