@@ -48,15 +48,15 @@ impl Chip8 {
         assert!(font_area.len() == 80);
         font_area.copy_from_slice(&FONT);
 
-        return chip8;
-    }
-
-    pub fn run(&mut self, key: usize, redraw: &mut bool) -> bool {
         #[cfg(debug_assertions)]
         {
             println!("----- CHIP8 Oxidized Interactive Debugger -----");
         }
 
+        return chip8;
+    }
+
+    pub fn run(&mut self, key: usize, redraw: &mut bool) -> bool {
         let first_half: u8 = self.ram[self.pc];
         let second_half: u8 = self.ram[self.pc + 1];
         let instruction: [u8; 4] = [
