@@ -152,7 +152,9 @@ fn main() -> Result<(), io::Error> {
             }
         }
 
-        chip8.run(key, &mut redraw);
+        if !chip8.run(key, &mut redraw) {
+            break;
+        }
 
         sdl2_timer_system.delay(1);
         let end = sdl2_timer_system.ticks() - time;

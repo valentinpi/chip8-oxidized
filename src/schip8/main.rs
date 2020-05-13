@@ -97,8 +97,8 @@ fn main() -> Result<(), io::Error> {
         })
         .unwrap();
 
-    let window_width: u32 = (schip8::SCHIP8_SCREEN_WIDTH as u32) * 20;
-    let window_height: u32 = (schip8::SCHIP8_SCREEN_HEIGHT as u32) * 20;
+    let window_width: u32 = 1280;
+    let window_height: u32 = 640;
 
     let window = sdl2_video_system
         .window(["chip8-oxidized", &args[1]].join(" - ").as_str(), window_width, window_height)
@@ -152,7 +152,9 @@ fn main() -> Result<(), io::Error> {
             }
         }
 
-        schip8.run(key, &mut redraw);
+        if !schip8.run(key, &mut redraw) {
+            break;
+        }
 
         sdl2_timer_system.delay(1);
         let end = sdl2_timer_system.ticks() - time;
@@ -177,14 +179,16 @@ fn main() -> Result<(), io::Error> {
             let mut texture = texture_creator
                 .create_texture_streaming(
                     pixels::PixelFormatEnum::RGB24,
-                    schip8::SCHIP8_SCREEN_WIDTH as u32,
-                    schip8::SCHIP8_SCREEN_HEIGHT as u32,
+                    schip8.screen_width as u32,
+                    schip8.screen_height as u32,
                 )
                 .unwrap();
-            let mut texture_data: [u8; schip8::NUM_PIXELS * 3] = [0; schip8::NUM_PIXELS * 3];
-            for (i, pixel) in schip8.screen.iter().enumerate() {
+            let num_pixels = schip8.screen_width * schip8.screen_height;
+            let mut texture_data: Vec<u8> = vec![0; num_pixels * 3];
+            for i in 0..num_pixels {
                 let mut color = 0x00;
-                if *pixel == 1 {
+                let pixel = schip8.screen[i];
+                if pixel == 1 {
                     color = 0xFF;
                 }
                 texture_data[i * 3] = color;
@@ -195,7 +199,7 @@ fn main() -> Result<(), io::Error> {
                 .update(
                     None,
                     &texture_data,
-                    (schip8::SCHIP8_SCREEN_WIDTH * 3) as usize,
+                    (schip8.screen_width * 3) as usize,
                 )
                 .unwrap();
             canvas.copy(&texture, None, None).unwrap();
