@@ -108,7 +108,7 @@ fn main() -> Result<(), io::Error> {
     let mut canvas = window
         .into_canvas()
         .accelerated()
-        .present_vsync()
+        //.present_vsync()
         .build()
         .unwrap();
     let texture_creator = canvas.texture_creator();
