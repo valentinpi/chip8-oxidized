@@ -1,0 +1,14 @@
+[package]
+name = "chip8-oxidized-web"
+version = "0.1.0"
+authors = ["valentinpi, Kaneki-kun9"]
+edition = "2018"
+
+[dependencies]
+js-sys = "0.3.40"
+wasm-bindgen = "0.2.63"
+
+[lib]
+crate-type = ["cdylib"]
+name = "chip8oxidizedweb"
+path ="../src/schip8.rs"
