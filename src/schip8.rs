@@ -80,7 +80,6 @@ impl SChip8 {
         assert!(schip8_font_area.0.len() == 100);
         schip8_font_area.0.copy_from_slice(&SCHIP8_FONT);
 
-
         #[cfg(debug_assertions)]
         {
             println!("----- SCHIP8 Oxidized Interactive Debugger -----");

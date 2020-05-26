@@ -8,13 +8,14 @@ edition = "2018"
 
 [dependencies]
 rand = "0.7.3"
-#sdl2 = "0.34"
 sdl2 = { version = "0.34", features = ["bundled", "static-link"] }
+wasm-bindgen = "0.2.62"
 
-#[[bin]]
-#name = "chip8-oxidized"
-#path = "src/chip8/main.rs"
+[[bin]]
+name = "chip8-oxidized"
+path = "src/main.rs"
 
-#[[bin]]
-#name = "schip8-oxidized"
-#path = "src/schip8/main.rs"
+#[lib]
+#name = "chip8_oxidized"
+#crate-type = ["cdylib", "rlib"]
+#path = "src/schip8.rs"
