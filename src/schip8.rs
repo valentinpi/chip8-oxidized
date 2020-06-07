@@ -17,26 +17,47 @@ const CHIP8_FONT: [u8; 80] = [
 // See https://github.com/mattmikolay/chip-8/issues/3
 // From https://github.com/zaymat/super-chip8/blob/master/cpu.cpp
 const SCHIP8_FONT: [u8; 100] = [
-    0x3C, 0x7E, 0xE7, 0xC3, 0xC3, 0xC3, 0xC3, 0xE7, 0x7E, 0x3C, 
-    0x18, 0x38, 0x58, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x3C,
-    0x3E, 0x7F, 0xC3, 0x06, 0x0C, 0x18, 0x30, 0x60, 0xFF, 0xFF,
-    0x3C, 0x7E, 0xC3, 0x03, 0x0E, 0x0E, 0x03, 0xC3, 0x7E, 0x3C,
-    0x06, 0x0E, 0x1E, 0x36, 0x66, 0xC6, 0xFF, 0xFF, 0x06, 0x06,
-    0xFF, 0xFF, 0xC0, 0xC0, 0xFC, 0xFE, 0x03, 0xC3, 0x7E, 0x3C,
-    0x3E, 0x7C, 0xC0, 0xC0, 0xFC, 0xFE, 0xC3, 0xC3, 0x7E, 0x3C,
-    0xFF, 0xFF, 0x03, 0x06, 0x0C, 0x18, 0x30, 0x60, 0x60, 0x60,
-    0x3C, 0x7E, 0xC3, 0xC3, 0x7E, 0x7E, 0xC3, 0xC3, 0x7E, 0x3C,
-    0x3C, 0x7E, 0xC3, 0xC3, 0x7F, 0x3F, 0x03, 0x03, 0x3E, 0x7C
+    0x3C, 0x7E, 0xE7, 0xC3, 0xC3, 0xC3, 0xC3, 0xE7, 0x7E, 0x3C, 0x18, 0x38, 0x58, 0x18, 0x18, 0x18,
+    0x18, 0x18, 0x18, 0x3C, 0x3E, 0x7F, 0xC3, 0x06, 0x0C, 0x18, 0x30, 0x60, 0xFF, 0xFF, 0x3C, 0x7E,
+    0xC3, 0x03, 0x0E, 0x0E, 0x03, 0xC3, 0x7E, 0x3C, 0x06, 0x0E, 0x1E, 0x36, 0x66, 0xC6, 0xFF, 0xFF,
+    0x06, 0x06, 0xFF, 0xFF, 0xC0, 0xC0, 0xFC, 0xFE, 0x03, 0xC3, 0x7E, 0x3C, 0x3E, 0x7C, 0xC0, 0xC0,
+    0xFC, 0xFE, 0xC3, 0xC3, 0x7E, 0x3C, 0xFF, 0xFF, 0x03, 0x06, 0x0C, 0x18, 0x30, 0x60, 0x60, 0x60,
+    0x3C, 0x7E, 0xC3, 0xC3, 0x7E, 0x7E, 0xC3, 0xC3, 0x7E, 0x3C, 0x3C, 0x7E, 0xC3, 0xC3, 0x7F, 0x3F,
+    0x03, 0x03, 0x3E, 0x7C,
 ];
 
+#[cfg(target_os = "web")]
+use wasm_bindgen::prelude::wasm_bindgen;
+
+#[cfg(target_os = "web")]
+#[wasm_bindgen]
+#[cfg(target_os = "web")]
 pub struct SChip8 {
     pc: usize,
     ar: u16, // Address register
     sp: usize,
-    pub r: [u8; 8], // RPL Flags
+    r: Box<[u8]>, // RPL Flags
+    v: Box<[u16]>,
+    pub dt: u8,          // Delay timer
+    pub st: u8,          // Sound timer
+    stack: Box<[usize]>, // Stack implemented as empty ascending
+    ram: Box<[u8]>,
+    screen: Box<[u8]>,
+    pub screen_width: usize,
+    pub screen_height: usize,
+    pub extended_screen: bool,
+    key_pad: Box<[u8]>,
+}
+
+#[cfg(not(target_os = "web"))]
+pub struct SChip8 {
+    pc: usize,
+    ar: u16, // Address register
+    sp: usize,
+    r: [u8; 8], // RPL Flags
     v: [u16; 16],
-    pub dt: u8, // Delay timer
-    pub st: u8, // Sound timer
+    pub dt: u8,         // Delay timer
+    pub st: u8,         // Sound timer
     stack: [usize; 48], // Stack implemented as empty ascending
     ram: [u8; 0x1000],
     pub screen: [u8; SCHIP8_NUM_PIXELS],
@@ -48,6 +69,25 @@ pub struct SChip8 {
 
 impl SChip8 {
     pub fn new(program: Vec<u8>) -> SChip8 {
+        #[cfg(target_os = "web")]
+        let mut schip8 = SChip8 {
+            pc: 512,
+            ar: 0,
+            sp: 0,
+            r: Box::new([0; 8]),
+            v: Box::new([0; 16]),
+            dt: 0,
+            st: 0,
+            stack: Box::new([0; 48]),
+            ram: Box::new([0; 0x1000]),
+            screen: Box::new([0; SCHIP8_NUM_PIXELS]),
+            screen_width: CHIP8_SCREEN_WIDTH,
+            screen_height: CHIP8_SCREEN_HEIGHT,
+            extended_screen: false,
+            key_pad: Box::new([0; 16]),
+        };
+
+        #[cfg(not(target_os = "web"))]
         let mut schip8 = SChip8 {
             pc: 512,
             ar: 0,
@@ -74,7 +114,7 @@ impl SChip8 {
         let mut chip8_font_area = schip8.ram.split_at_mut(80);
         assert!(chip8_font_area.0.len() == 80);
         chip8_font_area.0.copy_from_slice(&CHIP8_FONT);
-        
+
         chip8_font_area = schip8.ram.split_at_mut(80);
         let schip8_font_area = chip8_font_area.1.split_at_mut(100);
         assert!(schip8_font_area.0.len() == 100);
@@ -120,7 +160,16 @@ impl SChip8 {
             }
             // 00E0 - Clears the screen.
             [0x0, 0x0, 0xE, 0x0] => {
-                self.screen = [0; SCHIP8_NUM_PIXELS];
+                #[cfg(target_os = "web")]
+                {
+                    self.screen = Box::new([0; SCHIP8_NUM_PIXELS]);
+                }
+
+                #[cfg(not(target_os = "web"))]
+                {
+                    self.screen = [0; SCHIP8_NUM_PIXELS];
+                }
+
                 *redraw = true;
             }
             // 00EE - Returns from a subroutine.
@@ -312,11 +361,11 @@ impl SChip8 {
             // For SCHIP8: Show N-byte sprite from M(I) at coords (VX,VY), VF := collision. If N=0 and extended mode, show 16x16 sprite.
             [0xD, x, y, c] => {
                 self.v[0xF] = 0;
-                
+
                 let pixels = &mut self.screen;
                 let num_pixels = self.screen_width * self.screen_height;
                 let mut col_size = 8;
-                
+
                 let mut ar = self.ar as usize;
                 let x = (self.v[x as usize] as usize) % self.screen_width;
                 let mut yi = (self.v[y as usize] as usize) % self.screen_height;
@@ -343,7 +392,7 @@ impl SChip8 {
                         (sprite_data & 0x02) >> 1,
                         sprite_data & 0x01,
                     ];
-    
+
                     // Get the current row in the screen buffer
                     let pixel_row_coord = yi * self.screen_width + x;
                     let pixel_row_left = pixel_row_coord;
@@ -355,7 +404,7 @@ impl SChip8 {
                         pixel_row_right = num_pixels;
                     }
                     let pixel_row = &mut pixels[pixel_row_left..pixel_row_right];
-    
+
                     // Iterate over sprite pixels
                     let mut xi = 0;
                     for sprite_pixel in sprite_row.iter() {
@@ -381,16 +430,38 @@ impl SChip8 {
             [0xE, x, 0x9, 0xE] => {
                 let vx = self.v[x as usize];
                 let keyp = self.key_pad[vx as usize];
-                if keyp {
-                    self.pc += 2;
+
+                #[cfg(target_os = "web")]
+                {
+                    if keyp == 1 {
+                        self.pc += 2;
+                    }
+                }
+
+                #[cfg(not(target_os = "web"))]
+                {
+                    if keyp {
+                        self.pc += 2;
+                    }
                 }
             }
             // EXA1 - Skips the next instruction if the key stored in VX isn't pressed. (Usually the next instruction is a jump to skip a code block)
             [0xE, x, 0xA, 0x1] => {
                 let vx = self.v[x as usize];
                 let keyp = self.key_pad[vx as usize];
-                if !keyp {
-                    self.pc += 2;
+
+                #[cfg(target_os = "web")]
+                {
+                    if keyp == 0 {
+                        self.pc += 2;
+                    }
+                }
+
+                #[cfg(not(target_os = "web"))]
+                {
+                    if !keyp {
+                        self.pc += 2;
+                    }
                 }
             }
             // FX07 - Sets VX to the value of the delay timer.
