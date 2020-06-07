@@ -101,7 +101,11 @@ fn main() -> Result<(), io::Error> {
     let window_height: u32 = 640;
 
     let window = sdl2_video_system
-        .window(["chip8-oxidized", &args[1]].join(" - ").as_str(), window_width, window_height)
+        .window(
+            ["chip8-oxidized", &args[1]].join(" - ").as_str(),
+            window_width,
+            window_height,
+        )
         .resizable()
         .build()
         .unwrap();
@@ -141,9 +145,7 @@ fn main() -> Result<(), io::Error> {
                     if keycode != None {
                         let code = keycode.unwrap();
                         match key_bindings.get(&code) {
-                            Some(binding) => {
-                                schip8.key_pad[*binding] = false;
-                            }
+                            Some(binding) => schip8.key_pad[*binding] = false,
                             None => {}
                         }
                     }
@@ -188,6 +190,7 @@ fn main() -> Result<(), io::Error> {
             for i in 0..num_pixels {
                 let mut color = 0x00;
                 let pixel = schip8.screen[i];
+
                 if pixel == 1 {
                     color = 0xFF;
                 }
@@ -196,11 +199,7 @@ fn main() -> Result<(), io::Error> {
                 texture_data[i * 3 + 2] = color;
             }
             texture
-                .update(
-                    None,
-                    &texture_data,
-                    (schip8.screen_width * 3) as usize,
-                )
+                .update(None, &texture_data, (schip8.screen_width * 3) as usize)
                 .unwrap();
             canvas.copy(&texture, None, None).unwrap();
             canvas.present();
