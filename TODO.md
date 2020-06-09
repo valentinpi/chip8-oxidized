@@ -1,12 +1,12 @@
 # TODO-List for the chip8-oxidized emulator
 
-- [ ] Emulator
+- [x] Emulator
     - [x] Implement remaining instructions
     - [x] Implement font reading
     - [x] Figure out what to do with the 0NNN instruction
     - NOT NEEDED. Write test routines
     - [x] Implement interactive debugger
-    - [ ] SUGGESTION. Implement Super Chip8 (SCHIP8)
+    - [x] SUGGESTION. Implement Super Chip8 (SCHIP8)
 - [x] SDL frontend
     - [x] Handle time
     - [x] Implement efficient drawing
@@ -14,6 +14,6 @@
     - [x] Perhaps implement different keybindings for non-numpad users
 - [ ] Web Assembly Frontend
     - [ ] Implement frontend similar to the SDL one
-- [ ] Portability
-    - [ ] Separate emulator and rendering components
-    - [ ] SUGGESTION. Separate emulator loop and emulated architecture
+- [x] Portability
+    - [x] Separate emulator and rendering components
+    - [x] SUGGESTION. Separate emulator loop and emulated architecture
