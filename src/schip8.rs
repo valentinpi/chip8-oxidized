@@ -66,11 +66,11 @@ pub struct SChip8 {
     pub st: u8,                // Sound timer
     stack: Box<[usize]>,       // Stack implemented as empty ascending
     ram: Box<[u8]>,            //
-    screen: Box<[u8]>,     //
+    screen: Box<[u8]>,         //
     pub screen_width: usize,   //
     pub screen_height: usize,  //
     pub extended_screen: bool, //
-    key_pad: Box<[u8]>,    //
+    key_pad: Box<[u8]>,        //
 }
 
 impl SChip8 {
@@ -132,6 +132,28 @@ impl SChip8 {
         }
 
         return schip8;
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn get_screen(&self) -> Box<[u8]> {
+        let mut screen = Box::new([0; SCHIP8_NUM_PIXELS]);
+
+        for (i, p) in self.screen.iter().enumerate() {
+            screen[i] = *p;
+        }
+
+        return screen;
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn get_key_pad(&self) -> Box<[u8]> {
+        let mut key_pad = Box::new([0; 16]);
+
+        for (i, p) in self.key_pad.iter().enumerate() {
+            key_pad[i] = *p;
+        }
+
+        return key_pad;
     }
 
     pub fn run(&mut self, key: usize, redraw: &mut bool) -> bool {
