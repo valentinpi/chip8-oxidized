@@ -1,3 +1,5 @@
+use rand::random;
+
 pub const CHIP8_SCREEN_WIDTH: usize = 64;
 pub const CHIP8_SCREEN_HEIGHT: usize = 32;
 pub const _CHIP8_NUM_PIXELS: usize = CHIP8_SCREEN_WIDTH * CHIP8_SCREEN_HEIGHT;
@@ -26,7 +28,6 @@ const SCHIP8_FONT: [u8; 100] = [
     0x03, 0x03, 0x3E, 0x7C,
 ];
 
-#[cfg(not(target_arch = "wasm32"))]
 pub struct SChip8 {
     pc: usize,                           //
     ar: u16,                             // Address register
@@ -44,38 +45,8 @@ pub struct SChip8 {
     pub key_pad: [bool; 16],             //
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-use rand::random;
-
-#[cfg(target_arch = "wasm32")]
-use js_sys::Math::random;
-
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::prelude::wasm_bindgen;
-
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen]
-#[cfg(target_arch = "wasm32")]
-pub struct SChip8 {
-    pc: usize,                 // Program counter
-    ar: u16,                   // Address register
-    sp: usize,                 //
-    r: Box<[u8]>,              // RPL Flags
-    v: Box<[u16]>,             //
-    pub dt: u8,                // Delay timer
-    pub st: u8,                // Sound timer
-    stack: Box<[usize]>,       // Stack implemented as empty ascending
-    ram: Box<[u8]>,            //
-    screen: Box<[u8]>,         //
-    pub screen_width: usize,   //
-    pub screen_height: usize,  //
-    pub extended_screen: bool, //
-    key_pad: Box<[u8]>,        //
-}
-
 impl SChip8 {
     pub fn new(program: Vec<u8>) -> SChip8 {
-        #[cfg(not(target_arch = "wasm32"))]
         let mut schip8 = SChip8 {
             pc: 512,
             ar: 0,
@@ -91,24 +62,6 @@ impl SChip8 {
             screen_height: CHIP8_SCREEN_HEIGHT,
             extended_screen: false,
             key_pad: [false; 16],
-        };
-
-        #[cfg(target_arch = "wasm32")]
-        let mut schip8 = SChip8 {
-            pc: 512,
-            ar: 0,
-            sp: 0,
-            r: Box::new([0; 8]),
-            v: Box::new([0; 16]),
-            dt: 0,
-            st: 0,
-            stack: Box::new([0; 48]),
-            ram: Box::new([0; 0x1000]),
-            screen: Box::new([0; SCHIP8_NUM_PIXELS]),
-            screen_width: CHIP8_SCREEN_WIDTH,
-            screen_height: CHIP8_SCREEN_HEIGHT,
-            extended_screen: false,
-            key_pad: Box::new([0; 16]),
         };
 
         let (reserved, ram) = schip8.ram.split_at_mut(512);
@@ -134,28 +87,6 @@ impl SChip8 {
         return schip8;
     }
 
-    #[cfg(target_arch = "wasm32")]
-    pub fn get_screen(&self) -> Box<[u8]> {
-        let mut screen = Box::new([0; SCHIP8_NUM_PIXELS]);
-
-        for (i, p) in self.screen.iter().enumerate() {
-            screen[i] = *p;
-        }
-
-        return screen;
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    pub fn get_key_pad(&self) -> Box<[u8]> {
-        let mut key_pad = Box::new([0; 16]);
-
-        for (i, p) in self.key_pad.iter().enumerate() {
-            key_pad[i] = *p;
-        }
-
-        return key_pad;
-    }
-
     pub fn run(&mut self, key: usize, redraw: &mut bool) -> bool {
         let first_half: u8 = self.ram[self.pc];
         let second_half: u8 = self.ram[self.pc + 1];
@@ -178,26 +109,13 @@ impl SChip8 {
             [0x0, 0x0, 0xC, c] => {
                 let num_pixels = self.screen_width * self.screen_height;
                 let offset = (c as usize) * self.screen_width;
-                // TODO: Inefficient, fix this
-                for i in offset..num_pixels {
-                    self.screen[i - offset] = self.screen[i];
-                }
-                for i in num_pixels - offset..num_pixels {
-                    self.screen[i] = 0;
-                }
+                let mut new_screen = [0; SCHIP8_NUM_PIXELS];
+                new_screen[offset..num_pixels].copy_from_slice(&self.screen[0..(num_pixels - offset)]);
+                self.screen = new_screen;
             }
             // 00E0 - Clears the screen.
             [0x0, 0x0, 0xE, 0x0] => {
-                #[cfg(not(target_arch = "wasm32"))]
-                {
-                    self.screen = [0; SCHIP8_NUM_PIXELS];
-                }
-
-                #[cfg(target_arch = "wasm32")]
-                {
-                    self.screen = Box::new([0; SCHIP8_NUM_PIXELS]);
-                }
-
+                self.screen = [0; SCHIP8_NUM_PIXELS];
                 *redraw = true;
             }
             // 00EE - Returns from a subroutine.
@@ -377,89 +295,12 @@ impl SChip8 {
             // CXNN - Sets VX to the result of a bitwise and operation on a random number (Typically: 0 to 255) and NN.
             [0xC, x, b, c] => {
                 let nn = ((b << 4) | c) as u16;
-
-                #[cfg(not(target_arch = "wasm32"))] {
-                    let rand = random::<u8>() as u16;
-                    self.v[x as usize] = rand & nn;
-                }
-
-                #[cfg(target_arch = "wasm32")] {
-                    let rand = (random() * (0xFF as f64)).floor() as u16;
-                    self.v[x as usize] = rand & nn;
-                }
+                let rand = random::<u8>() as u16;
+                self.v[x as usize] = rand & nn;
             }
             // DXYN - Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels. Each row of 8 pixels is read as bit-coded starting from memory location I; I value doesn’t change after the execution of this instruction. As described above, VF is set to 1 if any screen pixels are flipped from set to unset when the sprite is drawn, and to 0 if that doesn’t happen
-            // - Coordinate (VX, VY)                            - Check
-            // - 8x{1-F} sprite, starts at I                    - Check
-            // - Each row bit coded                             - Check
-            // - I does not change                              - Check
-            // - Flip from set to unset => VF=1, otherwise VF=0 - Check
-            // For SCHIP8: Show N-byte sprite from M(I) at coords (VX,VY), VF := collision. If N=0 and extended mode, show 16x16 sprite.
             [0xD, x, y, c] => {
-                self.v[0xF] = 0;
-
-                let pixels = &mut self.screen;
-                let num_pixels = self.screen_width * self.screen_height;
-                let mut col_size = 8;
-
-                let mut ar = self.ar as usize;
-                let x = (self.v[x as usize] as usize) % self.screen_width;
-                let mut yi = (self.v[y as usize] as usize) % self.screen_height;
-                let mut ye = yi + (c as usize);
-
-                if c == 0 && self.extended_screen {
-                    col_size += 8;
-                    ye += 8;
-                }
-
-                while yi < ye {
-                    if yi >= self.screen_height {
-                        break;
-                    }
-                    // Extract each bit from sprite
-                    let sprite_data = self.ram[ar];
-                    let sprite_row = [
-                        (sprite_data & 0x80) >> 7,
-                        (sprite_data & 0x40) >> 6,
-                        (sprite_data & 0x20) >> 5,
-                        (sprite_data & 0x10) >> 4,
-                        (sprite_data & 0x08) >> 3,
-                        (sprite_data & 0x04) >> 2,
-                        (sprite_data & 0x02) >> 1,
-                        sprite_data & 0x01,
-                    ];
-
-                    // Get the current row in the screen buffer
-                    let pixel_row_coord = yi * self.screen_width + x;
-                    let pixel_row_left = pixel_row_coord;
-                    let mut pixel_row_right = pixel_row_coord + col_size;
-                    if pixel_row_left >= num_pixels {
-                        break;
-                    }
-                    if pixel_row_right > num_pixels {
-                        pixel_row_right = num_pixels;
-                    }
-                    let pixel_row = &mut pixels[pixel_row_left..pixel_row_right];
-
-                    // Iterate over sprite pixels
-                    let mut xi = 0;
-                    for sprite_pixel in sprite_row.iter() {
-                        let pixel = pixel_row[xi];
-                        // Collision detection
-                        if pixel == 1 && *sprite_pixel == 1 {
-                            self.v[0xF] = 1;
-                        }
-                        // XOR the pixels from the screen buffer and the sprite
-                        let result = pixel ^ *sprite_pixel;
-                        pixel_row[xi] = result;
-                        xi += 1;
-                        if xi >= pixel_row.len() {
-                            break;
-                        }
-                    }
-                    ar += 1;
-                    yi += 1;
-                }
+                self.render(x, y, c);
                 *redraw = true;
             }
             // EX9E - Skips the next instruction if the key stored in VX is pressed. (Usually the next instruction is a jump to skip a code block)
@@ -467,18 +308,8 @@ impl SChip8 {
                 let vx = self.v[x as usize];
                 let keyp = self.key_pad[vx as usize];
 
-                #[cfg(not(target_arch = "wasm32"))]
-                {
-                    if keyp {
-                        self.pc += 2;
-                    }
-                }
-
-                #[cfg(target_arch = "wasm32")]
-                {
-                    if keyp == 1 {
-                        self.pc += 2;
-                    }
+                if keyp {
+                    self.pc += 2;
                 }
             }
             // EXA1 - Skips the next instruction if the key stored in VX isn't pressed. (Usually the next instruction is a jump to skip a code block)
@@ -486,18 +317,8 @@ impl SChip8 {
                 let vx = self.v[x as usize];
                 let keyp = self.key_pad[vx as usize];
 
-                #[cfg(not(target_arch = "wasm32"))]
-                {
-                    if !keyp {
-                        self.pc += 2;
-                    }
-                }
-
-                #[cfg(target_arch = "wasm32")]
-                {
-                    if keyp == 0 {
-                        self.pc += 2;
-                    }
+                if !keyp {
+                    self.pc += 2;
                 }
             }
             // FX07 - Sets VX to the value of the delay timer.
@@ -506,7 +327,6 @@ impl SChip8 {
             }
             // FX0A - A key press is awaited, and then stored in VX. (Blocking Operation. All instruction halted until next key event)
             [0xF, x, 0x0, 0xA] => {
-                // TODO:
                 if key < 16 {
                     self.v[x as usize] = key as u16;
                 } else {
@@ -519,7 +339,6 @@ impl SChip8 {
             }
             // FX18 - Sets the sound timer to VX.
             [0xF, x, 0x1, 0x8] => {
-                // TODO:
                 self.st = self.v[x as usize] as u8;
             }
             // FX1E - Adds VX to I. VF is set to 1 when there is a range overflow (I+VX>0xFFF), and to 0 when there isn't.
@@ -644,5 +463,78 @@ impl SChip8 {
         }
 
         return true;
+    }
+
+    // - Coordinate (VX, VY)                            - Check
+    // - 8x{1-F} sprite, starts at I                    - Check
+    // - Each row bit coded                             - Check
+    // - I does not change                              - Check
+    // - Flip from set to unset => VF=1, otherwise VF=0 - Check
+    // For SCHIP8: Show N-byte sprite from M(I) at coords (VX,VY), VF := collision. If N=0 and extended mode, show 16x16 sprite.
+    fn render(&mut self, x: u8, y: u8, c: u8) {
+        self.v[0xF] = 0;
+
+        let pixels = &mut self.screen;
+        let num_pixels = self.screen_width * self.screen_height;
+        let mut col_size = 8;
+
+        let mut ar = self.ar as usize;
+        let x = (self.v[x as usize] as usize) % self.screen_width;
+        let mut yi = (self.v[y as usize] as usize) % self.screen_height;
+        let mut ye = yi + (c as usize);
+
+        if c == 0 && self.extended_screen {
+            col_size += 8;
+            ye += 8;
+        }
+
+        while yi < ye {
+            if yi >= self.screen_height {
+                break;
+            }
+            // Extract each bit from sprite
+            let sprite_data = self.ram[ar];
+            let sprite_row = [
+                (sprite_data & 0x80) >> 7,
+                (sprite_data & 0x40) >> 6,
+                (sprite_data & 0x20) >> 5,
+                (sprite_data & 0x10) >> 4,
+                (sprite_data & 0x08) >> 3,
+                (sprite_data & 0x04) >> 2,
+                (sprite_data & 0x02) >> 1,
+                sprite_data & 0x01,
+            ];
+
+            // Get the current row in the screen buffer
+            let pixel_row_coord = yi * self.screen_width + x;
+            let pixel_row_left = pixel_row_coord;
+            let mut pixel_row_right = pixel_row_coord + col_size;
+            if pixel_row_left >= num_pixels {
+                break;
+            }
+            if pixel_row_right > num_pixels {
+                pixel_row_right = num_pixels;
+            }
+            let pixel_row = &mut pixels[pixel_row_left..pixel_row_right];
+
+            // Iterate over sprite pixels
+            let mut xi = 0;
+            for sprite_pixel in sprite_row.iter() {
+                let pixel = pixel_row[xi];
+                // Collision detection
+                if pixel == 1 && *sprite_pixel == 1 {
+                    self.v[0xF] = 1;
+                }
+                // XOR the pixels from the screen buffer and the sprite
+                let result = pixel ^ *sprite_pixel;
+                pixel_row[xi] = result;
+                xi += 1;
+                if xi >= pixel_row.len() {
+                    break;
+                }
+            }
+            ar += 1;
+            yi += 1;
+        }
     }
 }
