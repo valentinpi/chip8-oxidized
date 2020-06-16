@@ -12,8 +12,12 @@
     - [x] Implement efficient drawing
     - [x] Implement audio
     - [x] Perhaps implement different keybindings for non-numpad users
-- [ ] Web Assembly Frontend
+- [ ] WebAssembly Frontend
     - [ ] Implement frontend similar to the SDL one
 - [x] Portability
     - [x] Separate emulator and rendering components
     - [x] SUGGESTION. Separate emulator loop and emulated architecture
+
+NO WebAssembly Implementation
+- No availability of regular arrays, only by using several libraries
+- Complex structure code (due to the wasm_bindgen macro insertion)
