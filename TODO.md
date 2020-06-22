@@ -12,8 +12,8 @@
     - [x] Implement efficient drawing
     - [x] Implement audio
     - [x] Perhaps implement different keybindings for non-numpad users
-- [ ] WebAssembly Frontend
-    - [ ] Implement frontend similar to the SDL one
+- [-] WebAssembly Frontend
+    - [-] Implement frontend similar to the SDL one
 - [x] Portability
     - [x] Separate emulator and rendering components
     - [x] SUGGESTION. Separate emulator loop and emulated architecture
