@@ -112,7 +112,7 @@ fn main() -> Result<(), io::Error> {
     let mut canvas = window
         .into_canvas()
         .accelerated()
-        //.present_vsync()
+        .present_vsync()
         .build()
         .unwrap();
     let texture_creator = canvas.texture_creator();
@@ -158,7 +158,7 @@ fn main() -> Result<(), io::Error> {
             break;
         }
 
-        sdl2_timer_system.delay(1);
+        //std::thread::sleep();
         let end = sdl2_timer_system.ticks() - time;
         if end >= 16 {
             if schip8.dt > 0 {
