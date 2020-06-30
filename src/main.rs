@@ -158,7 +158,6 @@ fn main() -> Result<(), io::Error> {
             break;
         }
 
-        //std::thread::sleep();
         let end = sdl2_timer_system.ticks() - time;
         if end >= 16 {
             if schip8.dt > 0 {
@@ -174,7 +173,6 @@ fn main() -> Result<(), io::Error> {
             time = sdl2_timer_system.ticks();
         }
 
-        // TODO:
         if redraw {
             canvas.clear();
 
