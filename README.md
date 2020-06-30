@@ -16,3 +16,4 @@ About the Chip8 Architecture
 Chip8 and Super Chip8 Games
 - http://www.pong-story.com/chip8/
 - http://chip8.sourceforge.net/chip8-1.1.pdf
+- https://github.com/dmatlack/chip8
