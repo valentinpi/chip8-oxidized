@@ -30,33 +30,34 @@ fn main() -> Result<(), io::Error> {
         sdl2::version::revision_number()
     );
 
-    let mut key_bindings = HashMap::new();
-    key_bindings.insert(Keycode::Num0, 0x0);
-    key_bindings.insert(Keycode::Num1, 0x1);
-    key_bindings.insert(Keycode::Num2, 0x2);
-    key_bindings.insert(Keycode::Num3, 0x3);
-    key_bindings.insert(Keycode::Num4, 0x4);
-    key_bindings.insert(Keycode::Num5, 0x5);
-    key_bindings.insert(Keycode::Num6, 0x6);
-    key_bindings.insert(Keycode::Num7, 0x7);
-    key_bindings.insert(Keycode::Num8, 0x8);
-    key_bindings.insert(Keycode::Num9, 0x9);
-    key_bindings.insert(Keycode::Kp0, 0x0);
-    key_bindings.insert(Keycode::Kp1, 0x1);
-    key_bindings.insert(Keycode::Kp2, 0x2);
-    key_bindings.insert(Keycode::Kp3, 0x3);
-    key_bindings.insert(Keycode::Kp4, 0x4);
-    key_bindings.insert(Keycode::Kp5, 0x5);
-    key_bindings.insert(Keycode::Kp6, 0x6);
-    key_bindings.insert(Keycode::Kp7, 0x7);
-    key_bindings.insert(Keycode::Kp8, 0x8);
-    key_bindings.insert(Keycode::Kp9, 0x9);
-    key_bindings.insert(Keycode::A, 0xA);
-    key_bindings.insert(Keycode::B, 0xB);
-    key_bindings.insert(Keycode::C, 0xC);
-    key_bindings.insert(Keycode::D, 0xD);
-    key_bindings.insert(Keycode::E, 0xE);
-    key_bindings.insert(Keycode::F, 0xF);
+    let key_bindings: HashMap<Keycode, usize> = [
+        (Keycode::Num0, 0x0),
+        (Keycode::Num1, 0x1),
+        (Keycode::Num2, 0x2),
+        (Keycode::Num3, 0x3),
+        (Keycode::Num4, 0x4),
+        (Keycode::Num5, 0x5),
+        (Keycode::Num6, 0x6),
+        (Keycode::Num7, 0x7),
+        (Keycode::Num8, 0x8),
+        (Keycode::Num9, 0x9),
+        (Keycode::Kp0, 0x0),
+        (Keycode::Kp1, 0x1),
+        (Keycode::Kp2, 0x2),
+        (Keycode::Kp3, 0x3),
+        (Keycode::Kp4, 0x4),
+        (Keycode::Kp5, 0x5),
+        (Keycode::Kp6, 0x6),
+        (Keycode::Kp7, 0x7),
+        (Keycode::Kp8, 0x8),
+        (Keycode::Kp9, 0x9),
+        (Keycode::A, 0xA),
+        (Keycode::B, 0xB),
+        (Keycode::C, 0xC),
+        (Keycode::D, 0xD),
+        (Keycode::E, 0xE),
+        (Keycode::F, 0xF)
+    ].iter().cloned().collect();
 
     // TODO:
     let spec = audio::AudioSpecDesired {
