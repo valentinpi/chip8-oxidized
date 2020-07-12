@@ -3,15 +3,33 @@ name = "web"
 version = "0.1.0"
 authors = ["valentinpi <valentinpickel@gmx.de>"]
 edition = "2018"
+description = "WASM implementation of the CHIP8 emulator"
+repository = "https://github.com/valentinpi/chip8-oxidized"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 js-sys = "0.3.41"
-serde = { version = "1.0.114", features = [ "derive" ] }
 serde-wasm-bindgen = "0.1.3"
 wasm-bindgen = "0.2.64"
 
+[dependencies.serde]
+version = "1.0.114"
+features = [
+    "derive"
+]
+
+[dependencies.web-sys]
+version = "0.3.41"
+features = [
+    "console",
+    "CanvasRenderingContext2d",
+    "Document",
+    "Element",
+    "HtmlCanvasElement",
+    "Window",
+]
+
 [lib]
 crate-type = ["cdylib", "rlib"]
-path = "src/schip8.rs"
+path = "src/lib.rs"
