@@ -2,7 +2,7 @@ mod schip8;
 
 use schip8::SChip8;
 use sdl2::{audio, event, keyboard::Keycode, pixels};
-use std::{collections::HashMap, env, fs, io};
+use std::{collections::HashMap, env, fs, io, time::Duration, time::SystemTime};
 
 fn main() -> Result<(), io::Error> {
     let args: Vec<String> = env::args().collect();
@@ -121,7 +121,7 @@ fn main() -> Result<(), io::Error> {
     let mut event_pump = sdl2_context.event_pump().unwrap();
     let mut redraw = true;
     let mut key = 0;
-    let mut time = sdl2_timer_system.ticks();
+    let mut time = SystemTime::now();
     'running: loop {
         for event in event_pump.poll_iter() {
             use event::Event::*;
@@ -159,8 +159,8 @@ fn main() -> Result<(), io::Error> {
             break;
         }
 
-        let end = sdl2_timer_system.ticks() - time;
-        if end >= 16 {
+        let end = SystemTime::now().duration_since(time).unwrap();
+        if end.as_millis() >= 16 {
             if schip8.dt > 0 {
                 schip8.dt -= 1;
             }
@@ -171,7 +171,7 @@ fn main() -> Result<(), io::Error> {
                     audio_device.pause();
                 }
             }
-            time = sdl2_timer_system.ticks();
+            time = SystemTime::now();
         }
 
         if redraw {
@@ -193,6 +193,7 @@ fn main() -> Result<(), io::Error> {
                 if pixel == 1 {
                     color = 0xFF;
                 }
+
                 texture_data[i * 3] = color;
                 texture_data[i * 3 + 1] = color;
                 texture_data[i * 3 + 2] = color;
@@ -205,6 +206,9 @@ fn main() -> Result<(), io::Error> {
 
             redraw = false;
         }
+
+        // Arbitrarily chosen duration of 1ms
+        std::thread::sleep(Duration::from_millis(1));
     }
 
     return Ok(());
