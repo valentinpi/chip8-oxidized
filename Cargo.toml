@@ -1,6 +1,6 @@
 [package]
 name = "chip8-oxidized"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["valentinpi, Kaneki-kun9"]
 edition = "2018"
 
