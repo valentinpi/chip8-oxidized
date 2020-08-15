@@ -1,1 +1,1 @@
-import * as wasm from "chip8-oxidized";
+import * as wasm from "c8_ox_www";

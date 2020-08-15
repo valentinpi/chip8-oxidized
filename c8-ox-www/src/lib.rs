@@ -1,14 +1,16 @@
-//use web_sys::console;
+use web_sys::console;
 use wasm_bindgen::prelude::*;
 
-//const tetris: &[u8] = include_bytes!("../examples/chip8/TETRIS");
+//const tetris: &[u8] = include_bytes!("../../roms/chip8/TETRIS");
 
 #[wasm_bindgen]
-extern {
+extern "C" {
     fn alert(s: &str);
 }
 
 #[wasm_bindgen(start)]
 pub fn start() {
-    //console.log("Hi!");
+    let js_value = JsValue::from_str("Hi!");
+    let js_array = js_sys::Array::from(&js_value); 
+    console::log(&js_array);
 }
