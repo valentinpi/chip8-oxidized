@@ -34,6 +34,6 @@
     "copy-webpack-plugin": "^5.0.0"
   },
   "dependencies": {
-    "chip8-oxidized": "file:../pkg"
+    "c8_ox_www": "file:../pkg"
   }
 }
