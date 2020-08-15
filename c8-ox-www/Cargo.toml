@@ -1,0 +1,23 @@
+# WASM Implementation - Builds executable WASM file depending on the DOM model for a canvas
+
+[package]
+name = "c8-ox-www"
+version = "0.1.0"
+authors = ["valentinpi, casept, Kaneki-kun9"]
+edition = "2018"
+license = "MIT"
+license-file = "../LICENSE"
+
+[dependencies]
+js-sys = "0.3.44"
+wasm-bindgen = "0.2.67"
+
+[dependencies.web-sys]
+version = "0.3.44"
+# Exhaustive list from: https://github.com/rustwasm/wasm-bindgen/blob/master/crates/web-sys/Cargo.toml
+features = [
+    "ConsoleInstance"
+]
+
+[lib]
+crate-type = ["cdylib", "rlib"]

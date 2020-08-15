@@ -2,7 +2,8 @@ use rand::random;
 
 pub const CHIP8_SCREEN_WIDTH: usize = 64;
 pub const CHIP8_SCREEN_HEIGHT: usize = 32;
-pub const _CHIP8_NUM_PIXELS: usize = CHIP8_SCREEN_WIDTH * CHIP8_SCREEN_HEIGHT;
+// Only included for documentation purposes
+//pub const CHIP8_NUM_PIXELS: usize = CHIP8_SCREEN_WIDTH * CHIP8_SCREEN_HEIGHT;
 
 pub const SCHIP8_SCREEN_WIDTH: usize = 128;
 pub const SCHIP8_SCREEN_HEIGHT: usize = 64;

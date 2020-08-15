@@ -1,0 +1,22 @@
+# SDL Implementation - Builds binary executable depending on buildable windows and graphics pipelines
+
+[package]
+name = "c8-ox-sdl"
+version = "1.0.0"
+authors = ["valentinpi, casept, Kaneki-kun9"]
+edition = "2018"
+license = "MIT"
+license-file = "../LICENSE"
+
+[dependencies]
+rand = "0.7.3"
+
+[dependencies.sdl2]
+version = "0.34"
+features = [
+    "bundled",
+    "static-link"
+]
+
+[[bin]]
+name = "c8-ox-sdl"

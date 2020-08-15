@@ -4,6 +4,30 @@ use schip8::SChip8;
 use sdl2::{audio, event, keyboard::Keycode, pixels};
 use std::{collections::HashMap, env, fs, io, time::Duration, time::SystemTime};
 
+// Squarewave for audio output
+struct SquareWave {
+    phase_inc: f32,
+    phase: f32,
+    volume: f32,
+}
+
+impl audio::AudioCallback for SquareWave {
+    // Data channel
+    type Channel = f32;
+
+    fn callback(&mut self, out: &mut [f32]) {
+        // Generate square wave
+        for x in out.iter_mut() {
+            if self.phase <= 0.5 {
+                *x = self.volume;
+            } else {
+                *x = -self.volume;
+            };
+            self.phase = (self.phase + self.phase_inc) % 1.0;
+        }
+    }
+}
+
 fn main() -> Result<(), io::Error> {
     let args: Vec<String> = env::args().collect();
 
@@ -20,7 +44,6 @@ fn main() -> Result<(), io::Error> {
 
     let sdl2_context = sdl2::init().expect("Failed to initialize SDL");
     let sdl2_audio_system = sdl2_context.audio().unwrap();
-    let mut sdl2_timer_system = sdl2_context.timer().unwrap();
     let sdl2_video_system = sdl2_context.video().unwrap();
 
     println!(
@@ -59,7 +82,6 @@ fn main() -> Result<(), io::Error> {
         (Keycode::F, 0xF)
     ].iter().cloned().collect();
 
-    // TODO:
     let spec = audio::AudioSpecDesired {
         channels: Some(1),
         freq: Some(44100),
@@ -67,29 +89,6 @@ fn main() -> Result<(), io::Error> {
     };
     let audio_device = sdl2_audio_system
         .open_playback(None, &spec, |spec| {
-            struct SquareWave {
-                phase_inc: f32,
-                phase: f32,
-                volume: f32,
-            };
-
-            impl audio::AudioCallback for SquareWave {
-                // Data channel
-                type Channel = f32;
-
-                fn callback(&mut self, out: &mut [f32]) {
-                    // Generate square wave
-                    for x in out.iter_mut() {
-                        if self.phase <= 0.5 {
-                            *x = self.volume;
-                        } else {
-                            *x = -self.volume;
-                        };
-                        self.phase = (self.phase + self.phase_inc) % 1.0;
-                    }
-                }
-            }
-
             return SquareWave {
                 phase: 0.0,
                 phase_inc: 440.0 / spec.freq as f32,
