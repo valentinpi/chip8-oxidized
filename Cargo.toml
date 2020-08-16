@@ -3,3 +3,6 @@ members = [
     "c8-ox-sdl",
     "c8-ox-www"
 ]
+
+[profile.release.package.c8-ox-www]
+opt-level = "s"

@@ -26,6 +26,3 @@ features = [
 
 [lib]
 crate-type = ["cdylib", "rlib"]
-
-[profile.release]
-opt-level = "s"

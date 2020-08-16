@@ -34,5 +34,13 @@ pub fn start() {
     context.fill_rect(0.0, 0.0, canvas.width() as f64, canvas.height() as f64);
 
     let tetris = include_bytes!("../../roms/chip8/TETRIS").to_vec();
-    let schip8 = SChip8::new(tetris);
+    let mut schip8 = SChip8::new(tetris);
+    loop {
+        let quit = schip8.run(0);
+        schip8.render(&canvas, &context);
+
+        if quit {
+            break;
+        }
+    }
 }
