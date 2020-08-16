@@ -1,4 +1,4 @@
-use rand::random;
+use wasm_bindgen::prelude::*;
 
 pub const CHIP8_SCREEN_WIDTH: usize = 64;
 pub const CHIP8_SCREEN_HEIGHT: usize = 32;
@@ -29,21 +29,22 @@ const SCHIP8_FONT: [u8; 100] = [
     0x03, 0x03, 0x3E, 0x7C,
 ];
 
+#[wasm_bindgen]
 pub struct SChip8 {
-    pc: usize,                           //
-    ar: u16,                             // Address register
-    sp: usize,                           //
-    r: [u8; 8],                          // RPL Flags
-    v: [u16; 16],                        //
-    pub dt: u8,                          // Delay timer
-    pub st: u8,                          // Sound timer
-    stack: [usize; 48],                  // Stack implemented as empty ascending
-    ram: [u8; 0x1000],                   //
-    pub screen: [u8; SCHIP8_NUM_PIXELS], //
-    pub screen_width: usize,             //
-    pub screen_height: usize,            //
-    pub extended_screen: bool,           //
-    pub key_pad: [bool; 16],             //
+    pc: usize,                 //
+    ar: u16,                   // Address register
+    sp: usize,                 //
+    r: Vec<u8>,                // RPL Flags
+    v: Vec<u16>,               //
+    pub dt: u8,                // Delay timer
+    pub st: u8,                // Sound timer
+    stack: Vec<usize>,         // Stack implemented as empty ascending
+    ram: Vec<u8>,              //
+    screen: Vec<u8>,       //
+    pub screen_width: usize,   //
+    pub screen_height: usize,  //
+    pub extended_screen: bool, //
+    key_pad: Vec<u8>,      //
 }
 
 impl SChip8 {
@@ -52,17 +53,17 @@ impl SChip8 {
             pc: 512,
             ar: 0,
             sp: 0,
-            r: [0; 8],
-            v: [0; 16],
+            r: vec![0; 8],
+            v: vec![0; 16],
             dt: 0,
             st: 0,
-            stack: [0; 48],
-            ram: [0; 0x1000],
-            screen: [0; SCHIP8_NUM_PIXELS],
+            stack: vec![0; 48],
+            ram: vec![0; 0x1000],
+            screen: vec![0; SCHIP8_NUM_PIXELS],
             screen_width: CHIP8_SCREEN_WIDTH,
             screen_height: CHIP8_SCREEN_HEIGHT,
             extended_screen: false,
-            key_pad: [false; 16],
+            key_pad: vec![0; 16],
         };
 
         let (reserved, ram) = schip8.ram.split_at_mut(512);
@@ -88,6 +89,7 @@ impl SChip8 {
         return schip8;
     }
 
+/*
     pub fn run(&mut self, key: usize, redraw: &mut bool) -> bool {
         let first_half: u8 = self.ram[self.pc];
         let second_half: u8 = self.ram[self.pc + 1];
@@ -538,4 +540,5 @@ impl SChip8 {
             yi += 1;
         }
     }
+*/
 }
