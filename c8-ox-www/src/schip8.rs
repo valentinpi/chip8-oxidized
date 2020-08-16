@@ -1,3 +1,4 @@
+use js_sys::Math;
 use wasm_bindgen::prelude::*;
 
 pub const CHIP8_SCREEN_WIDTH: usize = 64;
@@ -31,39 +32,42 @@ const SCHIP8_FONT: [u8; 100] = [
 
 #[wasm_bindgen]
 pub struct SChip8 {
-    pc: usize,                 //
-    ar: u16,                   // Address register
-    sp: usize,                 //
-    r: Vec<u8>,                // RPL Flags
-    v: Vec<u16>,               //
-    pub dt: u8,                // Delay timer
-    pub st: u8,                // Sound timer
-    stack: Vec<usize>,         // Stack implemented as empty ascending
-    ram: Vec<u8>,              //
-    screen: Vec<u8>,       //
-    pub screen_width: usize,   //
-    pub screen_height: usize,  //
-    pub extended_screen: bool, //
-    key_pad: Vec<u8>,      //
+    pc: usize,                       //
+    ar: u16,                         // Address register
+    sp: usize,                       //
+    r: [u8; 8],                      // RPL Flags
+    v: [u16; 16],                    //
+    pub dt: u8,                      // Delay timer
+    pub st: u8,                      // Sound timer
+    stack: [usize; 48],              // Stack implemented as empty ascending
+    ram: [u8; 0x1000],               //
+    screen: [u8; SCHIP8_NUM_PIXELS], //
+    pub screen_width: usize,         //
+    pub screen_height: usize,        //
+    pub extended_screen: bool,       //
+    key_pad: [bool; 16],             //
+    redraw: bool,                    //
 }
 
+#[wasm_bindgen]
 impl SChip8 {
     pub fn new(program: Vec<u8>) -> SChip8 {
         let mut schip8 = SChip8 {
             pc: 512,
             ar: 0,
             sp: 0,
-            r: vec![0; 8],
-            v: vec![0; 16],
+            r: [0; 8],
+            v: [0; 16],
             dt: 0,
             st: 0,
-            stack: vec![0; 48],
-            ram: vec![0; 0x1000],
-            screen: vec![0; SCHIP8_NUM_PIXELS],
+            stack: [0; 48],
+            ram: [0; 0x1000],
+            screen: [0; SCHIP8_NUM_PIXELS],
             screen_width: CHIP8_SCREEN_WIDTH,
             screen_height: CHIP8_SCREEN_HEIGHT,
             extended_screen: false,
-            key_pad: vec![0; 16],
+            key_pad: [false; 16],
+            redraw: true,
         };
 
         let (reserved, ram) = schip8.ram.split_at_mut(512);
@@ -89,8 +93,7 @@ impl SChip8 {
         return schip8;
     }
 
-/*
-    pub fn run(&mut self, key: usize, redraw: &mut bool) -> bool {
+    pub fn run(&mut self, key: usize) -> bool {
         let first_half: u8 = self.ram[self.pc];
         let second_half: u8 = self.ram[self.pc + 1];
         let instruction: [u8; 4] = [
@@ -113,13 +116,14 @@ impl SChip8 {
                 let num_pixels = self.screen_width * self.screen_height;
                 let offset = (c as usize) * self.screen_width;
                 let mut new_screen = [0; SCHIP8_NUM_PIXELS];
-                new_screen[offset..num_pixels].copy_from_slice(&self.screen[0..(num_pixels - offset)]);
+                new_screen[offset..num_pixels]
+                    .copy_from_slice(&self.screen[0..(num_pixels - offset)]);
                 self.screen = new_screen;
             }
             // 00E0 - Clears the screen.
             [0x0, 0x0, 0xE, 0x0] => {
                 self.screen = [0; SCHIP8_NUM_PIXELS];
-                *redraw = true;
+                self.redraw = true;
             }
             // 00EE - Returns from a subroutine.
             [0x0, 0x0, 0xE, 0xE] => {
@@ -298,13 +302,15 @@ impl SChip8 {
             // CXNN - Sets VX to the result of a bitwise and operation on a random number (Typically: 0 to 255) and NN.
             [0xC, x, b, c] => {
                 let nn = ((b << 4) | c) as u16;
-                let rand = random::<u8>() as u16;
+                #[allow(unused_unsafe)] // since Rust analyzer keeps complaining
+                let rand = unsafe {
+                    (Math::random() * (0xFF as  f64)) as u16
+                };
                 self.v[x as usize] = rand & nn;
             }
             // DXYN - Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels. Each row of 8 pixels is read as bit-coded starting from memory location I; I value doesn’t change after the execution of this instruction. As described above, VF is set to 1 if any screen pixels are flipped from set to unset when the sprite is drawn, and to 0 if that doesn’t happen
             [0xD, x, y, c] => {
-                self.render(x, y, c);
-                *redraw = true;
+                self.render_sprite(x, y, c);
             }
             // EX9E - Skips the next instruction if the key stored in VX is pressed. (Usually the next instruction is a jump to skip a code block)
             [0xE, x, 0x9, 0xE] => {
@@ -474,7 +480,7 @@ impl SChip8 {
     // - I does not change                              - Check
     // - Flip from set to unset => VF=1, otherwise VF=0 - Check
     // For SCHIP8: Show N-byte sprite from M(I) at coords (VX,VY), VF := collision. If N=0 and extended mode, show 16x16 sprite.
-    fn render(&mut self, x: u8, y: u8, c: u8) {
+    fn render_sprite(&mut self, x: u8, y: u8, c: u8) {
         self.v[0xF] = 0;
 
         let pixels = &mut self.screen;
@@ -540,5 +546,9 @@ impl SChip8 {
             yi += 1;
         }
     }
-*/
+
+    // Since the screen array must be private, use this for rendering
+    pub fn render(&self, canvas: &web_sys::HtmlCanvasElement, context: &web_sys::CanvasRenderingContext2d) {
+
+    }
 }
