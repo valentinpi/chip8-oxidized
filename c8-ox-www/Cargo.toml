@@ -16,8 +16,16 @@ wasm-bindgen = "0.2.67"
 version = "0.3.44"
 # Exhaustive list from: https://github.com/rustwasm/wasm-bindgen/blob/master/crates/web-sys/Cargo.toml
 features = [
-    "console"
+    "CanvasRenderingContext2d",
+    "console",
+    "Document",
+    "Element",
+    "HtmlCanvasElement",
+    "Window"
 ]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+
+[profile.release]
+opt-level = "s"
