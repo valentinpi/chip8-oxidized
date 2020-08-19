@@ -51,6 +51,7 @@ pub struct SChip8 {
 
 #[wasm_bindgen]
 impl SChip8 {
+    #[wasm_bindgen(constructor)]
     pub fn new(program: Vec<u8>) -> SChip8 {
         let mut schip8 = SChip8 {
             pc: 512,
@@ -93,6 +94,7 @@ impl SChip8 {
         return schip8;
     }
 
+    #[wasm_bindgen]
     pub fn run(&mut self, key: usize) -> bool {
         let first_half: u8 = self.ram[self.pc];
         let second_half: u8 = self.ram[self.pc + 1];
@@ -303,9 +305,7 @@ impl SChip8 {
             [0xC, x, b, c] => {
                 let nn = ((b << 4) | c) as u16;
                 #[allow(unused_unsafe)] // since Rust analyzer keeps complaining
-                let rand = unsafe {
-                    (Math::random() * (0xFF as  f64)) as u16
-                };
+                let rand = unsafe { (Math::random() * (0xFF as f64)) as u16 };
                 self.v[x as usize] = rand & nn;
             }
             // DXYN - Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels. Each row of 8 pixels is read as bit-coded starting from memory location I; I value doesn’t change after the execution of this instruction. As described above, VF is set to 1 if any screen pixels are flipped from set to unset when the sprite is drawn, and to 0 if that doesn’t happen
@@ -547,8 +547,40 @@ impl SChip8 {
         }
     }
 
-    // Since the screen array must be private, use this for rendering
-    pub fn render(&self, canvas: &web_sys::HtmlCanvasElement, context: &web_sys::CanvasRenderingContext2d) {
+    #[wasm_bindgen]
+    pub fn play(&mut self) {
+    }
 
+    #[wasm_bindgen]
+    // Since the screen array must be private, use this for rendering
+    pub fn render(
+        &self,
+        canvas: &web_sys::HtmlCanvasElement,
+        context: &web_sys::CanvasRenderingContext2d,
+    ) {
+        context.fill_rect(0.0, 0.0, canvas.width() as f64, canvas.height() as f64);
+        let pixel_w = canvas.width() as usize / self.screen_width;
+        let pixel_h = canvas.height() as usize / self.screen_height;
+
+        for y in 0..self.screen_height {
+            for x in 0..self.screen_width {
+                let pixel = self.screen[y * SCHIP8_SCREEN_WIDTH + x];
+
+                if pixel == 0 {
+                    context.set_fill_style(&JsValue::from_str("black"));
+                } else {
+                    context.set_fill_style(&JsValue::from_str("white"));
+                }
+
+                context.fill_rect(
+                    (x * pixel_w) as f64,
+                    (y * pixel_h) as f64,
+                    pixel_w as f64,
+                    pixel_h as f64,
+                );
+
+                //log!("Running");
+            }
+        }
     }
 }
