@@ -553,6 +553,6 @@ impl SChip8 {
     }
 
     pub fn get_pixel(&self, x: usize, y: usize) -> u8 {
-        self.screen[y * SCHIP8_SCREEN_WIDTH + x]
+        self.screen[y * self.screen_width + x]
     }
 }
