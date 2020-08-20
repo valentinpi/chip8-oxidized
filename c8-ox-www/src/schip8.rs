@@ -46,7 +46,6 @@ pub struct SChip8 {
     pub screen_height: usize,        //
     pub extended_screen: bool,       //
     key_pad: [bool; 16],             //
-    redraw: bool,                    //
 }
 
 #[wasm_bindgen]
@@ -68,7 +67,6 @@ impl SChip8 {
             screen_height: CHIP8_SCREEN_HEIGHT,
             extended_screen: false,
             key_pad: [false; 16],
-            redraw: true,
         };
 
         let (reserved, ram) = schip8.ram.split_at_mut(512);
@@ -94,7 +92,6 @@ impl SChip8 {
         return schip8;
     }
 
-    #[wasm_bindgen]
     pub fn run(&mut self, key: usize) -> bool {
         let first_half: u8 = self.ram[self.pc];
         let second_half: u8 = self.ram[self.pc + 1];
@@ -125,7 +122,8 @@ impl SChip8 {
             // 00E0 - Clears the screen.
             [0x0, 0x0, 0xE, 0x0] => {
                 self.screen = [0; SCHIP8_NUM_PIXELS];
-                self.redraw = true;
+                // TODO: Redraw optimization in WASM
+                //*redraw = true;
             }
             // 00EE - Returns from a subroutine.
             [0x0, 0x0, 0xE, 0xE] => {
@@ -547,40 +545,14 @@ impl SChip8 {
         }
     }
 
-    #[wasm_bindgen]
-    pub fn play(&mut self) {
+    // Helper getter and setter
+    pub fn set_key(&mut self, key: usize, status: bool) {
+        if key < 0x10 {
+            self.key_pad[key] = status;
+        }
     }
 
-    #[wasm_bindgen]
-    // Since the screen array must be private, use this for rendering
-    pub fn render(
-        &self,
-        canvas: &web_sys::HtmlCanvasElement,
-        context: &web_sys::CanvasRenderingContext2d,
-    ) {
-        context.fill_rect(0.0, 0.0, canvas.width() as f64, canvas.height() as f64);
-        let pixel_w = canvas.width() as usize / self.screen_width;
-        let pixel_h = canvas.height() as usize / self.screen_height;
-
-        for y in 0..self.screen_height {
-            for x in 0..self.screen_width {
-                let pixel = self.screen[y * SCHIP8_SCREEN_WIDTH + x];
-
-                if pixel == 0 {
-                    context.set_fill_style(&JsValue::from_str("black"));
-                } else {
-                    context.set_fill_style(&JsValue::from_str("white"));
-                }
-
-                context.fill_rect(
-                    (x * pixel_w) as f64,
-                    (y * pixel_h) as f64,
-                    pixel_w as f64,
-                    pixel_h as f64,
-                );
-
-                //log!("Running");
-            }
-        }
+    pub fn get_pixel(&self, x: usize, y: usize) -> u8 {
+        self.screen[y * SCHIP8_SCREEN_WIDTH + x]
     }
 }
