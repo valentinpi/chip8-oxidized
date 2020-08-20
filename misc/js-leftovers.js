@@ -1,0 +1,18 @@
+const key_map = {
+    KeyEvent.DOM_VK_0: 0x0,
+    KeyEvent.DOM_VK_1: 0x1,
+    KeyEvent.DOM_VK_2: 0x2,
+    KeyEvent.DOM_VK_3: 0x3,
+    KeyEvent.DOM_VK_4: 0x4,
+    KeyEvent.DOM_VK_5: 0x5,
+    KeyEvent.DOM_VK_6: 0x6,
+    KeyEvent.DOM_VK_7: 0x7,
+    KeyEvent.DOM_VK_8: 0x8,
+    KeyEvent.DOM_VK_9: 0x9,
+    KeyEvent.DOM_VK_A: 0xA,
+    KeyEvent.DOM_VK_B: 0xB,
+    KeyEvent.DOM_VK_C: 0xC,
+    KeyEvent.DOM_VK_D: 0xD,
+    KeyEvent.DOM_VK_E: 0xE,
+    KeyEvent.DOM_VK_F: 0xF,
+};
