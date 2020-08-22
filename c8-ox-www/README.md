@@ -14,6 +14,11 @@ Switch to the webpage folder.
 cd www
 ```
 
+Install the node dependencies.
+```
+npm install
+```
+
 Start the development server (webpack).
 ```
 npm run start
