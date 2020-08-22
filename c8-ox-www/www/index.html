@@ -8,8 +8,14 @@
   </head>
   <body>
     <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
+    <audio autoplay=false loop=true id="audio">
+        <source src="audio/440Hzsquare.mp3" type="audio/mpeg">
+        Your browser does not support the audio output.
+    </audio>
     <div id="wrapper">
-        <canvas width=1280 height=640 id="canvas"></canvas>
+        <canvas width=1280 height=640 id="canvas">
+            Your browser does not support the rendering output.
+        </canvas>
     </div>
     <script src="./bootstrap.js"></script>
   </body>
